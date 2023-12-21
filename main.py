@@ -3,8 +3,19 @@ from PyQt6.QtWidgets import *
 from PyQt6.QtSql import *
 import sqlite3
 
-def create_table():
-    connection = sqlite3.connect("students.db")
+def get_class_db_name(class_number):
+    return "students_" + class_number + ".db"
+
+def get_class_file_name(class_number):
+    return class_number + ".txt"
+
+def delete_end_of_string(string):
+    if (string[len(string) - 1] == '\n'):
+        string = string[0 : len(string) - 1]
+    return string
+
+def create_table(db_name):
+    connection = sqlite3.connect(db_name)
     cursor = connection.cursor()
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS students
@@ -13,32 +24,28 @@ def create_table():
     connection.commit()
     connection.close()
 
-def add_student(id, name):
-    connection = sqlite3.connect("students.db")
+def add_student(db_name, id, name):
+    connection = sqlite3.connect(db_name)
     cursor = connection.cursor()
     cursor.execute("INSERT INTO students VALUES ((?), (?), 0)", (id, name,))
     connection.commit()
     connection.close()
 
-def update(id, add):
-    connection = sqlite3.connect("students.db")
-    cursor = connection.cursor()
-    cursor.execute("UPDATE students SET Бонусы = (?) where id = (?)", (add, id))
-    connection.commit()
-    connection.close()
-
-if (not exists("students.db")):
-    create_table()
-    list_of_students = ["Авербах Давид Львович", "Грачев Егор Павлович", "Иванов Иван Иванович"]
-    for i in range(len(list_of_students)):
-        add_student(i + 1, list_of_students[i])
-    update(1, 239)
-    update(2, 239)
-    update(3, 42)
+with open("all_classes.txt", "r") as all_classes:
+    for cur_class_name in all_classes:
+        cur_class_name = delete_end_of_string(cur_class_name)
+        if (not exists(get_class_db_name(cur_class_name))):
+            create_table(get_class_db_name(cur_class_name))
+            with (open(get_class_file_name(cur_class_name), "r") as file):
+                id = 0
+                for line in file:
+                    line = delete_end_of_string(line)
+                    id += 1
+                    add_student(get_class_db_name(cur_class_name), id, line)
 
 app = QApplication([])
 db = QSqlDatabase.addDatabase("QSQLITE")
-db.setDatabaseName("students.db")
+db.setDatabaseName("students_10-1.db")
 db.open()
 
 model = QSqlTableModel(None, db)
