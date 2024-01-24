@@ -1,14 +1,15 @@
 from os.path import exists
+from PyQt6.QtCore import *
 from PyQt6.QtWidgets import *
 from PyQt6.QtSql import *
-from PyQt6.QtGui import QFont
+from PyQt6.QtGui import *
 import sqlite3
 
 def get_class_db_name(class_number):
-    return "students_" + class_number + ".db"
+    return "student_databases\\students_" + class_number + ".db"
 
 def get_class_file_name(class_number):
-    return class_number + ".txt"
+    return "stdent_lists\\" + class_number + ".txt"
 
 def delete_end_of_string(string):
     if (string[len(string) - 1] == '\n'):
@@ -32,6 +33,7 @@ def add_student(db_name, id, name):
     connection.commit()
     connection.close()
 
+
 with open("all_classes.txt", "r") as all_classes:
     for cur_class_name in all_classes:
         cur_class_name = delete_end_of_string(cur_class_name)
@@ -45,41 +47,49 @@ with open("all_classes.txt", "r") as all_classes:
                     add_student(get_class_db_name(cur_class_name), id, line)
 
 
+class Button(QPushButton):
+    def __init__(self, name, parent):
+        super(Button, self).__init__()
+        self.setFixedSize(200, 70)
+        self.setFlat(True)
+        self.setText(name)
+        self.setFont(QFont("Helvetica [Cronyx]", 14))
+        self.show()
+
+
 class Window(QWidget):
     def __init__(self):
         super().__init__()
-        self.t = None
+        self.table = None
         self.setWindowTitle("Название приложения")
         self.setGeometry(100, 100, 1200, 900)
-        self.create_widgets()
         self.setStyleSheet("background-color: rgb(172, 172, 172);")
+        self.create_widgets()
     
     def create_widgets(self):
-        button1 = QPushButton("Список классов", self)
-        button1.setGeometry(500, 300, 200, 70)
-        button1.setFont(QFont("Helvetica [Cronyx]", 14))
-        button1.setFlat(True)
-        button1.clicked.connect(self.button_clicked)
-        button2 = QPushButton("Мероприятия", self)
-        button2.setGeometry(500, 400, 200, 70)
-        button2.setFont(QFont("Helvetica [Cronyx]", 14))
-        button2.setFlat(True)
-        button3 = QPushButton("Настройки? / ...", self)
-        button3.setGeometry(500, 500, 200, 70)
-        button3.setFont(QFont("Helvetica [Cronyx]", 14))
-        button3.setFlat(True)
+        layout = QVBoxLayout()
+
+        button_all_classes = Button("Список классов", self)
+        button_all_classes.clicked.connect(self.button_clicked)
+        button_all_events = Button("Мероприятия", self)
+        button_options = Button("Настройки? / ...", self)
+
+        layout.addWidget(button_all_classes, alignment=Qt.AlignmentFlag.AlignCenter)
+        layout.addWidget(button_all_events, alignment=Qt.AlignmentFlag.AlignCenter)
+        layout.addWidget(button_options, alignment=Qt.AlignmentFlag.AlignCenter)
+        self.setLayout(layout)
     
     def button_clicked(self):
-        if (self.t is None):
-            self.t = Table()
-        self.t.showw()
+        if (self.table is None):
+            self.table = Table("10-1")
+        self.table.win.show()
 
 
 class Table(QTableView):
-    def __init__(self):
+    def __init__(self, class_name):
         super().__init__()
         db = QSqlDatabase.addDatabase("QSQLITE")
-        db.setDatabaseName("students_10-1.db")
+        db.setDatabaseName(get_class_db_name(class_name))
         db.open()
 
         model = QSqlTableModel(None, db)
@@ -94,9 +104,6 @@ class Table(QTableView):
         self.win.setColumnWidth(0, 20)
         self.win.setColumnWidth(1, 200)
         self.win.setColumnWidth(2, 80)
-
-    def showw(self):
-        self.win.show()
 
 
 app = QApplication([])
