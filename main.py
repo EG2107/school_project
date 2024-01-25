@@ -67,18 +67,57 @@ class Window(QWidget):
         self.create_widgets()
     
     def create_widgets(self):
-        layout = QVBoxLayout()
+        self.layout = QVBoxLayout()
 
-        button_all_classes = Button("Список классов", self)
-        button_all_classes.clicked.connect(self.button_clicked)
-        button_all_events = Button("Мероприятия", self)
-        button_options = Button("Настройки? / ...", self)
+        self.main_page_buttons = [Button("Список классов", self), Button("Мероприятия", self), Button("Настройки? / ...", self)]
+        self.main_page_buttons[0].clicked.connect(self.open_grade_selection_page)
 
-        layout.addWidget(button_all_classes, alignment=Qt.AlignmentFlag.AlignCenter)
-        layout.addWidget(button_all_events, alignment=Qt.AlignmentFlag.AlignCenter)
-        layout.addWidget(button_options, alignment=Qt.AlignmentFlag.AlignCenter)
-        self.setLayout(layout)
+        self.grade_selection_buttons = []
+        for grade in range(5, 12):
+            self.grade_selection_buttons.append(Button(str(grade), self))
+        
+        button_go_back_from_grade_selection = Button("Назад", self)
+        button_go_back_from_grade_selection.clicked.connect(self.open_main_page)
+        self.grade_selection_buttons.append(button_go_back_from_grade_selection)
+
+        self.class_selection_buttons = [[] for i in range(12)]
+        with open("all_classes.txt", "r") as all_classes:
+            for cur_class_name in all_classes:
+                cur_class_name = delete_end_of_string(cur_class_name)
+                grade = int(cur_class_name[0:1])
+                if (len(cur_class_name) == 4):
+                    grade = int(cur_class_name[0:2])
+                self.class_selection_buttons[grade].append(Button(cur_class_name, self))
+
+        button_go_back_from_class_selection = Button("Назад", self)
+        button_go_back_from_class_selection.clicked.connect(self.open_grade_selection_page)
+        for grade in range(5, 12):
+            self.class_selection_buttons.append(button_go_back_from_class_selection)
+
+        for button in self.main_page_buttons:
+            self.layout.addWidget(button, alignment=Qt.AlignmentFlag.AlignCenter)
+        for button in self.grade_selection_buttons:
+            self.layout.addWidget(button, alignment=Qt.AlignmentFlag.AlignCenter)
+            button.hide()
+
+        self.setLayout(self.layout)
     
+    def open_main_page(self):
+        for button in self.grade_selection_buttons:
+            button.hide()
+        for button in self.class_selection_buttons:
+            button.hide()
+        for button in self.main_page_buttons:
+            button.show()
+
+    def open_grade_selection_page(self):
+        for button in self.main_page_buttons:
+            button.hide()
+        for button in self.class_selection_buttons:
+            button.hide()
+        for button in self.grade_selection_buttons:
+            button.show()
+
     def button_clicked(self):
         if (self.table is None):
             self.table = Table("10-1")
