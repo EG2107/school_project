@@ -75,15 +75,10 @@ class Window(QWidget):
             self.layout.addWidget(button, alignment=Qt.AlignmentFlag.AlignCenter)
 
         self.grade_selection_buttons = []
-        button1 = Button(str(9), self)
-        button1.clicked.connect(lambda: self.open_class_selection_page(9))
-        self.grade_selection_buttons.append(button1)
-        button2 = Button(str(10), self)
-        button2.clicked.connect(lambda: self.open_class_selection_page(10))
-        self.grade_selection_buttons.append(button2)
-        button3 = Button(str(11), self)
-        button3.clicked.connect(lambda: self.open_class_selection_page(11))
-        self.grade_selection_buttons.append(button3)
+        for grade in range(5, 12):
+            button = Button(str(grade), self)
+            button.clicked.connect(lambda state, x = grade : self.open_class_selection_page(x))
+            self.grade_selection_buttons.append(button)
         
         button_go_back_from_grade_selection = Button("Назад", self)
         button_go_back_from_grade_selection.clicked.connect(self.open_main_page)
@@ -101,7 +96,8 @@ class Window(QWidget):
                 if (len(cur_class_name) == 4):
                     grade = int(cur_class_name[0:2])
                 button = Button(cur_class_name, self)
-                button.clicked.connect(lambda: self.open_table(cur_class_name))
+                print(cur_class_name)
+                button.clicked.connect(lambda state, x = cur_class_name : self.open_table(x))
                 self.class_selection_buttons[grade].append(button)
 
         for grade in range(12):
@@ -141,8 +137,10 @@ class Window(QWidget):
             button.show()
 
     def open_table(self, name):
-        if (self.table is None):
-            self.table = Table(name)
+        if (self.table is not None):
+            self.table.win.close()
+            self.table = None
+        self.table = Table(name)
         self.table.win.show()
 
 
