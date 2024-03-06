@@ -19,6 +19,9 @@ def get_activity_db_name(activity_name):
 def get_activity_file_name(activity_name):
     return "activity_lists\\" + activity_name + ".txt"
 
+def get_activity_description_name(activity_name):
+    return "activity_description\\" + activity_name + ".txt"
+
 def delete_end_of_string(string):
     if string[len(string) - 1] == '\n':
         string = string[0 : len(string) - 1]
@@ -92,7 +95,6 @@ class Button(QPushButton):
         self.setFlat(True)
         self.setText(name)
         self.setFont(QFont("Helvetica [Cronyx]", 14))
-        self.show()
 
 
 class Window(QWidget):
@@ -169,10 +171,11 @@ class Window(QWidget):
             for cur_activity_name in all_activities:
                 cur_activity_name = delete_end_of_string(cur_activity_name)
                 button = Button(cur_activity_name, self)
-                button.clicked.connect(lambda state, x = cur_activity_name : self.open_table_activities(x))
+                button.clicked.connect(lambda state, x = cur_activity_name : self.open_activity_inner_page(x))
                 self.activity_selection_buttons.append(button)
                 print(cur_activity_name)
         print("Done loading activity databases\n")
+
         button_go_back_from_acivity_selection = Button("Назад", self)
         button_go_back_from_acivity_selection.clicked.connect(self.open_main_page)
         self.activity_selection_buttons.append(button_go_back_from_acivity_selection)
@@ -180,6 +183,43 @@ class Window(QWidget):
         for button in self.activity_selection_buttons:
             self.layout.addWidget(button, alignment=Qt.AlignmentFlag.AlignCenter)
             button.hide()
+
+        self.create_activity_inner_page()
+
+    def create_activity_inner_page(self):
+        self.activity_inner_page_buttons = {}
+        self.activity_description_widgets = {}
+        with open("all_activities.txt", "r") as all_activities:
+            for cur_activity_name in all_activities:
+                cur_activity_name = delete_end_of_string(cur_activity_name)
+
+                buttons = []
+                button_participants_list = Button(cur_activity_name, self)
+                button_participants_list.clicked.connect(lambda state, x = cur_activity_name : self.open_table_activities(x))
+                buttons.append(button_participants_list)
+                button_description = Button("Описание", self)
+                button_description.clicked.connect(lambda state, x = cur_activity_name : self.open_activity_description(x))
+                buttons.append(button_description)
+                button_go_back_from_acivity_inner_page = Button("Назад", self)
+                button_go_back_from_acivity_inner_page.clicked.connect(self.open_activity_selection_page)
+                buttons.append(button_go_back_from_acivity_inner_page)
+
+                self.activity_inner_page_buttons[cur_activity_name] = buttons
+
+                for button in buttons:
+                    self.layout.addWidget(button, alignment=Qt.AlignmentFlag.AlignCenter)
+                    button.hide()
+
+                with open(get_activity_description_name(cur_activity_name)) as description:
+                    label = QLabel(*description)
+                    button_go_back_from_activity_selection = Button("Назад", self)
+                    button_go_back_from_activity_selection.clicked.connect(lambda state, x = cur_activity_name : self.open_activity_inner_page(x))
+                    self.activity_description_widgets[cur_activity_name] = [label, button_go_back_from_acivity_inner_page]
+
+                for widgets in self.activity_description_widgets.values():
+                    for widget in widgets:
+                        self.layout.addWidget(widget, alignment=Qt.AlignmentFlag.AlignCenter)
+                        widget.hide()
 
     def hide_all_buttons(self):
         if self.table is not None:
@@ -194,6 +234,12 @@ class Window(QWidget):
                 button.hide()
         for button in self.activity_selection_buttons:
             button.hide()
+        for buttons in self.activity_inner_page_buttons.values():
+            for button in buttons:
+                button.hide()
+        for widgets in self.activity_description_widgets.values():
+            for widget in widgets:
+                widget.hide()
     
     def open_main_page(self):
         self.hide_all_buttons()
@@ -214,6 +260,16 @@ class Window(QWidget):
         self.hide_all_buttons()
         for button in self.activity_selection_buttons:
             button.show()
+
+    def open_activity_inner_page(self, activity_name):
+        self.hide_all_buttons()
+        for button in self.activity_inner_page_buttons[activity_name]:
+            button.show()
+
+    def open_activity_description(self, activity_name):
+        self.hide_all_buttons()
+        for widget in self.activity_description_widgets[activity_name]:
+                widget.show()
 
     def open_table_students(self, name):
         if self.table is not None:
