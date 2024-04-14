@@ -84,7 +84,7 @@ def create_database():
 class Button(QPushButton):
     def __init__(self, name, parent):
         super(Button, self).__init__()
-        self.setFixedSize(200, 70)
+        self.setFixedSize(250, 70)
         self.setFlat(True)
         self.setText(name)
         self.setFont(QFont("Helvetica [Cronyx]", 14))
@@ -112,6 +112,19 @@ class Table(QTableView):
         self.view.hide()
 
 
+class InputWindow(QWidget):
+    def __init__(self):
+        super().__init__()
+        self.setWindowTitle("Окно ввода данных")
+        self.setGeometry(400, 300, 300, 300)
+        
+        self.layout = QVBoxLayout()
+        self.setLayout(self.layout)
+
+        self.input = QLineEdit()
+        self.layout.addWidget(self.input, alignment=Qt.AlignmentFlag.AlignCenter)
+
+
 class Window(QWidget):
     def __init__(self):
         super().__init__()
@@ -120,18 +133,19 @@ class Window(QWidget):
         self.setGeometry(100, 100, 1000, 750)
         self.setStyleSheet("background-color: rgb(172, 172, 172);")
         self.create_widgets()
+        self.open_main_page()
     
     def create_widgets(self):
         self.layout = QVBoxLayout()
+        self.setLayout(self.layout)
         self.create_main_page_buttons()
         self.crate_grade_selection_buttons()
         self.create_class_selection_buttons()
         self.create_activity_selection_buttons()
         self.create_activity_inner_page()
         self.create_activity_description_pages()
-        self.setLayout(self.layout)
         self.hide_all_buttons()
-        self.open_main_page()
+        self.input_win = None
 
     def create_main_page_buttons(self):
         button_student_lists = Button("Список классов", self)
@@ -212,6 +226,10 @@ class Window(QWidget):
                 button_description = Button("Описание", self)
                 button_description.clicked.connect(lambda state, x = cur_activity_name : self.open_activity_description(x))
                 self.activity_inner_page_widgets[cur_activity_name].append(button_description)
+
+                button_done = Button("Отметить проведение", self)
+                button_done.clicked.connect(lambda state, x = cur_activity_name : self.mark_activity_done(x))
+                self.activity_inner_page_widgets[cur_activity_name].append(button_done)
 
                 button_go_back_from_activity_inner_page = Button("Назад", self)
                 button_go_back_from_activity_inner_page.clicked.connect(self.open_activity_selection_page)
@@ -313,6 +331,21 @@ class Window(QWidget):
             if (not (name in students_activities[i])):
                 self.table.view.hideRow(i)
         self.table.view.hideColumn(0)
+
+    def mark_activity_done(self, name):
+        self.amount_to_add = 0
+        self.input_win = InputWindow()
+        self.input_win.show()
+
+        button = QPushButton("Подтвердить")
+        button.clicked.connect(self.get_input)
+        self.input_win.layout.addWidget(button)
+
+    def get_input(self):
+        text = self.input_win.input.text()
+        if text.isdigit():
+            self.amount_to_add = int(text)
+            self.input_win.close()
 
 
 if __name__ == "__main__":
