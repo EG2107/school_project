@@ -90,6 +90,28 @@ class Button(QPushButton):
         self.setFont(QFont("Helvetica [Cronyx]", 14))
 
 
+class Table(QTableView):
+    def __init__(self):
+        super().__init__()
+        self.db = QSqlDatabase.addDatabase("QSQLITE")
+        self.db.setDatabaseName(db_name)
+        self.db.open()
+
+        self.model = QSqlTableModel(None, self.db)
+        self.model.setTable("students")
+        self.model.select()
+
+        self.view = QTableView()
+        self.view.setModel(self.model)
+        self.view.move(100, 100)
+        self.view.resize(800, 600)
+        self.view.setColumnWidth(0, 15)
+        self.view.setColumnWidth(1, 300)
+        self.view.setColumnWidth(2, 70)
+        self.view.setColumnWidth(3, 70)
+        self.view.hide()
+
+
 class Window(QWidget):
     def __init__(self):
         super().__init__()
@@ -105,7 +127,11 @@ class Window(QWidget):
         self.crate_grade_selection_buttons()
         self.create_class_selection_buttons()
         self.create_activity_selection_buttons()
+        self.create_activity_inner_page()
+        self.create_activity_description_pages()
         self.setLayout(self.layout)
+        self.hide_all_buttons()
+        self.open_main_page()
 
     def create_main_page_buttons(self):
         button_student_lists = Button("Список классов", self)
@@ -131,7 +157,6 @@ class Window(QWidget):
 
         for button in self.grade_selection_buttons:
             self.layout.addWidget(button, alignment=Qt.AlignmentFlag.AlignCenter)
-            button.hide()
         
     def create_class_selection_buttons(self):
         self.class_selection_buttons = [[] for i in range(12)]
@@ -152,7 +177,6 @@ class Window(QWidget):
 
             for button in self.class_selection_buttons[grade]:
                 self.layout.addWidget(button, alignment=Qt.AlignmentFlag.AlignCenter)
-                button.hide()
 
     def create_activity_selection_buttons(self):
         self.activity_selection_buttons = []
@@ -169,47 +193,51 @@ class Window(QWidget):
 
         for button in self.activity_selection_buttons:
             self.layout.addWidget(button, alignment=Qt.AlignmentFlag.AlignCenter)
-            button.hide()
-
-        self.create_activity_inner_page()
 
     def create_activity_inner_page(self):
-        self.activity_inner_page_buttons = {}
-        self.activity_description_widgets = {}
+        self.activity_inner_page_widgets = {}
+        with open("all_activities.txt", "r") as all_activities:
+            for cur_activity_name in all_activities:
+                cur_activity_name = delete_end_of_string(cur_activity_name)
+                self.activity_inner_page_widgets[cur_activity_name] = []
 
+                label_activity_name = QLabel(cur_activity_name)
+                label_activity_name.setFont(QFont("Helvetica [Cronyx]", 18))
+                self.activity_inner_page_widgets[cur_activity_name].append(label_activity_name)
+
+                button_participants_list = Button("Участники", self)
+                button_participants_list.clicked.connect(lambda state, x = cur_activity_name : self.open_table_activity(x))
+                self.activity_inner_page_widgets[cur_activity_name].append(button_participants_list)
+
+                button_description = Button("Описание", self)
+                button_description.clicked.connect(lambda state, x = cur_activity_name : self.open_activity_description(x))
+                self.activity_inner_page_widgets[cur_activity_name].append(button_description)
+
+                button_go_back_from_activity_inner_page = Button("Назад", self)
+                button_go_back_from_activity_inner_page.clicked.connect(self.open_activity_selection_page)
+                self.activity_inner_page_widgets[cur_activity_name].append(button_go_back_from_activity_inner_page)
+
+                for widget in self.activity_inner_page_widgets[cur_activity_name]:
+                    self.layout.addWidget(widget, alignment=Qt.AlignmentFlag.AlignCenter)
+
+    def create_activity_description_pages(self):
+        self.activity_description_page_widgets = {}
         with open("all_activities.txt", "r") as all_activities:
             for cur_activity_name in all_activities:
                 cur_activity_name = delete_end_of_string(cur_activity_name)
 
-                buttons = []
-                button_participants_list = Button(cur_activity_name, self)
-                button_participants_list.clicked.connect(lambda state, x = cur_activity_name : self.open_table_activity(x))
-                buttons.append(button_participants_list)
-                button_description = Button("Описание", self)
-                button_description.clicked.connect(lambda state, x = cur_activity_name : self.open_activity_description(x))
-                buttons.append(button_description)
-                button_go_back_from_activity_inner_page = Button("Назад", self)
-                button_go_back_from_activity_inner_page.clicked.connect(self.open_activity_selection_page)
-                buttons.append(button_go_back_from_activity_inner_page)
-
-                self.activity_inner_page_buttons[cur_activity_name] = buttons
-
-                for button in buttons:
-                    self.layout.addWidget(button, alignment=Qt.AlignmentFlag.AlignCenter)
-                    button.hide()
-
                 with open(get_activity_description_name(cur_activity_name)) as description:
-                    label = QLabel(*description)
-                    label.hide()
-                    button_go_back_from_activity_selection = Button("Назад", self)
-                    button_go_back_from_activity_selection.clicked.connect(lambda state, x = cur_activity_name : self.open_activity_inner_page(x))
-                    button_go_back_from_activity_selection.hide()
-                    self.activity_description_widgets[cur_activity_name] = [label, button_go_back_from_activity_selection]
+                    self.activity_description_page_widgets[cur_activity_name] = []
 
-                for widgets in self.activity_description_widgets.values():
-                    for widget in widgets:
-                        self.layout.addWidget(widget, alignment=Qt.AlignmentFlag.AlignCenter)
-                        widget.hide()
+                    label_description = QLabel(*description)
+                    label_description.setFont(QFont("Helvetica [Cronyx]", 12))
+                    self.layout.addWidget(label_description, alignment=Qt.AlignmentFlag.AlignCenter)
+                    self.activity_description_page_widgets[cur_activity_name].append(label_description)
+
+                    button_go_back_from_activity_description = Button("Назад", self)
+                    button_go_back_from_activity_description.clicked.connect(lambda state, x = cur_activity_name : self.open_activity_inner_page(x))
+                    self.layout.addWidget(button_go_back_from_activity_description, alignment=Qt.AlignmentFlag.AlignCenter)
+                    self.activity_description_page_widgets[cur_activity_name].append(button_go_back_from_activity_description)
 
     def hide_all_buttons(self):
         self.table.view.hide()
@@ -222,10 +250,10 @@ class Window(QWidget):
                 button.hide()
         for button in self.activity_selection_buttons:
             button.hide()
-        for buttons in self.activity_inner_page_buttons.values():
-            for button in buttons:
-                button.hide()
-        for widgets in self.activity_description_widgets.values():
+        for widgets in self.activity_inner_page_widgets.values():
+            for widget in widgets:
+                widget.hide()
+        for widgets in self.activity_description_page_widgets.values():
             for widget in widgets:
                 widget.hide()
     
@@ -251,12 +279,12 @@ class Window(QWidget):
 
     def open_activity_inner_page(self, activity_name):
         self.hide_all_buttons()
-        for button in self.activity_inner_page_buttons[activity_name]:
+        for button in self.activity_inner_page_widgets[activity_name]:
             button.show()
 
     def open_activity_description(self, activity_name):
         self.hide_all_buttons()
-        for widget in self.activity_description_widgets[activity_name]:
+        for widget in self.activity_description_page_widgets[activity_name]:
             widget.show()
 
     def open_table_class(self, name):
@@ -285,28 +313,6 @@ class Window(QWidget):
             if (not (name in students_activities[i])):
                 self.table.view.hideRow(i)
         self.table.view.hideColumn(0)
-
-
-class Table(QTableView):
-    def __init__(self):
-        super().__init__()
-        self.db = QSqlDatabase.addDatabase("QSQLITE")
-        self.db.setDatabaseName(db_name)
-        self.db.open()
-
-        self.model = QSqlTableModel(None, self.db)
-        self.model.setTable("students")
-        self.model.select()
-
-        self.view = QTableView()
-        self.view.setModel(self.model)
-        self.view.move(100, 100)
-        self.view.resize(800, 600)
-        self.view.setColumnWidth(0, 15)
-        self.view.setColumnWidth(1, 300)
-        self.view.setColumnWidth(2, 70)
-        self.view.setColumnWidth(3, 70)
-        self.view.hide()
 
 
 if __name__ == "__main__":
