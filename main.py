@@ -7,14 +7,24 @@ from os.path import exists
 import os
 
 
-def get_class_db_name(class_number):
-    return "student_databases\\students_" + class_number + ".db"
+global db_name
+db_name = "student_database.db"
+
+global row_count
+row_count = 0
+
+global column_count
+column_count = 4
+
+global students_activities
+students_activities = []
+
+global student_id
+student_id = dict()
+
 
 def get_class_file_name(class_number):
     return "student_lists\\" + class_number + ".txt"
-
-def get_activity_db_name(activity_name):
-    return "activity_databases\\activity_" + activity_name + ".db"
 
 def get_activity_file_name(activity_name):
     return "activity_lists\\" + activity_name + ".txt"
@@ -27,65 +37,48 @@ def delete_end_of_string(string):
         string = string[0 : len(string) - 1]
     return string
 
-def create_table_students(db_name):
-    connection = sqlite3.connect(db_name)
-    cursor = connection.cursor()
-    cursor.execute("""
-        CREATE TABLE IF NOT EXISTS students
-        (ID INTEGER, ФИО TEXT, Бонусы INTEGER)
-    """)
-    connection.commit()
-    connection.close()
-
-def create_table_activities(db_name):
-    connection = sqlite3.connect(db_name)
-    cursor = connection.cursor()
-    cursor.execute("""
-        CREATE TABLE IF NOT EXISTS students
-        (ФИО TEXT, Класс TEXT)
-    """)
-    connection.commit()
-    connection.close()
-
-def add_student_to_student_database(db_name, id, name):
-    connection = sqlite3.connect(db_name)
-    cursor = connection.cursor()
-    cursor.execute("INSERT INTO students VALUES ((?), (?), 0)", (id, name,))
-    connection.commit()
-    connection.close()
-
-def add_student_to_activity_database(db_name, name, student_class):
-    connection = sqlite3.connect(db_name)
-    cursor = connection.cursor()
-    cursor.execute("INSERT INTO students VALUES ((?), (?))", (name, student_class,))
-    connection.commit()
-    connection.close()
-
-def create_databases():
+def init_data():
     with open("all_classes.txt", "r") as all_classes:
+        id = 0
         for cur_class_name in all_classes:
             cur_class_name = delete_end_of_string(cur_class_name)
-            if exists(get_class_db_name(cur_class_name)):
-                os.remove(get_class_db_name(cur_class_name))
-            create_table_students(get_class_db_name(cur_class_name))
             with open(get_class_file_name(cur_class_name), "r") as file:
-                id = 0
                 for student_name in file:
                     student_name = delete_end_of_string(student_name)
+                    student_id[student_name + " " + cur_class_name] = id
+                    students_activities.append(set())
                     id += 1
-                    add_student_to_student_database(get_class_db_name(cur_class_name), id, student_name)
+        global row_count
+        row_count = id
 
     with open("all_activities.txt", "r") as all_activities:
         for cur_activity_name in all_activities:
             cur_activity_name = delete_end_of_string(cur_activity_name)
-            if exists(get_activity_db_name(cur_activity_name)):
-                os.remove(get_activity_db_name(cur_activity_name))
-            create_table_activities(get_activity_db_name(cur_activity_name))
             with open(get_activity_file_name(cur_activity_name), "r") as file:
                 for line in file:
                     line = delete_end_of_string(line)
-                    student_name, student_class = line.rsplit(' ', 1)
-                    add_student_to_activity_database(get_activity_db_name(cur_activity_name), student_name, student_class)
+                    students_activities[student_id[line]].add(cur_activity_name)
+
+def create_database():
+    connection = sqlite3.connect("student_database.db")
+    cursor = connection.cursor()
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS students
+        (ID INTEGER, ФИО TEXT, Класс TEXT, Бонусы INTEGER)
+    """)
+
+    with open("all_classes.txt", "r") as all_classes:
+        id = 0
+        for cur_class_name in all_classes:
+            cur_class_name = delete_end_of_string(cur_class_name)
+            with open(get_class_file_name(cur_class_name), "r") as file:
+                for student_name in file:
+                    student_name = delete_end_of_string(student_name)
+                    cursor.execute("INSERT INTO students VALUES ((?), (?), (?), 0)", (id, student_name, cur_class_name, ))
+                    id += 1
+
+    connection.commit()
+    connection.close()
 
 
 class Button(QPushButton):
@@ -100,7 +93,7 @@ class Button(QPushButton):
 class Window(QWidget):
     def __init__(self):
         super().__init__()
-        self.table = None
+        self.table = Table()
         self.setWindowTitle("Название приложения")
         self.setGeometry(100, 100, 1000, 750)
         self.setStyleSheet("background-color: rgb(172, 172, 172);")
@@ -111,7 +104,7 @@ class Window(QWidget):
         self.create_main_page_buttons()
         self.crate_grade_selection_buttons()
         self.create_class_selection_buttons()
-        self.create_acivity_selection_buttons()
+        self.create_activity_selection_buttons()
         self.setLayout(self.layout)
 
     def create_main_page_buttons(self):
@@ -142,7 +135,6 @@ class Window(QWidget):
         
     def create_class_selection_buttons(self):
         self.class_selection_buttons = [[] for i in range(12)]
-        print("Classes:")
         with open("all_classes.txt", "r") as all_classes:
             for cur_class_name in all_classes:
                 cur_class_name = delete_end_of_string(cur_class_name)
@@ -150,10 +142,8 @@ class Window(QWidget):
                 if len(cur_class_name) == 4:
                     grade = int(cur_class_name[0:2])
                 button = Button(cur_class_name, self)
-                button.clicked.connect(lambda state, x = cur_class_name : self.open_table_students(x))
+                button.clicked.connect(lambda state, x = cur_class_name : self.open_table_class(x))
                 self.class_selection_buttons[grade].append(button)
-                print(cur_class_name)
-        print("Done loading class databases\n")
 
         for grade in range(12):
             button_go_back_from_class_selection = Button("Назад", self)
@@ -164,21 +154,18 @@ class Window(QWidget):
                 self.layout.addWidget(button, alignment=Qt.AlignmentFlag.AlignCenter)
                 button.hide()
 
-    def create_acivity_selection_buttons(self):
+    def create_activity_selection_buttons(self):
         self.activity_selection_buttons = []
-        print("Activities:")
         with open("all_activities.txt", "r") as all_activities:
             for cur_activity_name in all_activities:
                 cur_activity_name = delete_end_of_string(cur_activity_name)
                 button = Button(cur_activity_name, self)
                 button.clicked.connect(lambda state, x = cur_activity_name : self.open_activity_inner_page(x))
                 self.activity_selection_buttons.append(button)
-                print(cur_activity_name)
-        print("Done loading activity databases\n")
 
-        button_go_back_from_acivity_selection = Button("Назад", self)
-        button_go_back_from_acivity_selection.clicked.connect(self.open_main_page)
-        self.activity_selection_buttons.append(button_go_back_from_acivity_selection)
+        button_go_back_from_activity_selection = Button("Назад", self)
+        button_go_back_from_activity_selection.clicked.connect(self.open_main_page)
+        self.activity_selection_buttons.append(button_go_back_from_activity_selection)
 
         for button in self.activity_selection_buttons:
             self.layout.addWidget(button, alignment=Qt.AlignmentFlag.AlignCenter)
@@ -189,20 +176,21 @@ class Window(QWidget):
     def create_activity_inner_page(self):
         self.activity_inner_page_buttons = {}
         self.activity_description_widgets = {}
+
         with open("all_activities.txt", "r") as all_activities:
             for cur_activity_name in all_activities:
                 cur_activity_name = delete_end_of_string(cur_activity_name)
 
                 buttons = []
                 button_participants_list = Button(cur_activity_name, self)
-                button_participants_list.clicked.connect(lambda state, x = cur_activity_name : self.open_table_activities(x))
+                button_participants_list.clicked.connect(lambda state, x = cur_activity_name : self.open_table_activity(x))
                 buttons.append(button_participants_list)
                 button_description = Button("Описание", self)
                 button_description.clicked.connect(lambda state, x = cur_activity_name : self.open_activity_description(x))
                 buttons.append(button_description)
-                button_go_back_from_acivity_inner_page = Button("Назад", self)
-                button_go_back_from_acivity_inner_page.clicked.connect(self.open_activity_selection_page)
-                buttons.append(button_go_back_from_acivity_inner_page)
+                button_go_back_from_activity_inner_page = Button("Назад", self)
+                button_go_back_from_activity_inner_page.clicked.connect(self.open_activity_selection_page)
+                buttons.append(button_go_back_from_activity_inner_page)
 
                 self.activity_inner_page_buttons[cur_activity_name] = buttons
 
@@ -212,9 +200,11 @@ class Window(QWidget):
 
                 with open(get_activity_description_name(cur_activity_name)) as description:
                     label = QLabel(*description)
+                    label.hide()
                     button_go_back_from_activity_selection = Button("Назад", self)
                     button_go_back_from_activity_selection.clicked.connect(lambda state, x = cur_activity_name : self.open_activity_inner_page(x))
-                    self.activity_description_widgets[cur_activity_name] = [label, button_go_back_from_acivity_inner_page]
+                    button_go_back_from_activity_selection.hide()
+                    self.activity_description_widgets[cur_activity_name] = [label, button_go_back_from_activity_selection]
 
                 for widgets in self.activity_description_widgets.values():
                     for widget in widgets:
@@ -222,9 +212,7 @@ class Window(QWidget):
                         widget.hide()
 
     def hide_all_buttons(self):
-        if self.table is not None:
-            self.table.win.close()
-            self.table = None
+        self.table.view.hide()
         for button in self.main_page_buttons:
             button.hide()
         for button in self.grade_selection_buttons:
@@ -269,48 +257,62 @@ class Window(QWidget):
     def open_activity_description(self, activity_name):
         self.hide_all_buttons()
         for widget in self.activity_description_widgets[activity_name]:
-                widget.show()
+            widget.show()
 
-    def open_table_students(self, name):
-        if self.table is not None:
-            self.table.win.close()
-            self.table = None
-        self.table = Table(get_class_db_name(name), f"Список учеников класса {name}")
-        self.table.win.setColumnWidth(0, 20)
-        self.table.win.setColumnWidth(1, 300)
-        self.table.win.setColumnWidth(2, 80)
-        self.table.win.show()
+    def open_table_class(self, name):
+        self.table.view.hide()
+        self.table.view.setWindowTitle(f"Список учеников класса {name}")
+        self.table.view.show()
+        for i in range(column_count):
+            self.table.view.showColumn(i)
+        for i in range(row_count):
+            self.table.view.showRow(i)
+            index = self.table.view.model().index(i, 2)
+            cur_class_name = self.table.view.model().data(index)
+            if (cur_class_name != name):
+                self.table.view.hideRow(i)
+        self.table.view.hideColumn(0)
+        self.table.view.hideColumn(2)
 
-    def open_table_activities(self, name):
-        if self.table is not None:
-            self.table.win.close()
-            self.table = None
-        self.table = Table(get_activity_db_name(name), f"Список участников мероприятия {name}")
-        self.table.win.setColumnWidth(0, 300)
-        self.table.win.setColumnWidth(1, 80)
-        self.table.win.show()
+    def open_table_activity(self, name):
+        self.table.view.hide()
+        self.table.view.setWindowTitle(f"Список участников мероприятия '{name}'")
+        self.table.view.show()
+        for i in range(column_count):
+            self.table.view.showColumn(i)
+        for i in range(row_count):
+            self.table.view.showRow(i)
+            if (not (name in students_activities[i])):
+                self.table.view.hideRow(i)
+        self.table.view.hideColumn(0)
 
 
 class Table(QTableView):
-    def __init__(self, datadase_name, title):
+    def __init__(self):
         super().__init__()
-        db = QSqlDatabase.addDatabase("QSQLITE")
-        db.setDatabaseName(datadase_name)
-        db.open()
+        self.db = QSqlDatabase.addDatabase("QSQLITE")
+        self.db.setDatabaseName(db_name)
+        self.db.open()
 
-        model = QSqlTableModel(None, db)
-        model.setTable("students")
-        model.select()
+        self.model = QSqlTableModel(None, self.db)
+        self.model.setTable("students")
+        self.model.select()
 
-        self.win = QTableView()
-        self.win.setModel(model)
-        self.win.setWindowTitle(title)
-        self.win.move(100, 100)
-        self.win.resize(800, 600)
+        self.view = QTableView()
+        self.view.setModel(self.model)
+        self.view.move(100, 100)
+        self.view.resize(800, 600)
+        self.view.setColumnWidth(0, 15)
+        self.view.setColumnWidth(1, 300)
+        self.view.setColumnWidth(2, 70)
+        self.view.setColumnWidth(3, 70)
+        self.view.hide()
 
 
 if __name__ == "__main__":
-    create_databases()
+    init_data()
+    if not exists(db_name):
+        create_database()
     app = QApplication([])
     win = Window()
     win.show()
