@@ -55,9 +55,9 @@ def init_data():
         for cur_activity_name in all_activities:
             cur_activity_name = delete_end_of_string(cur_activity_name)
             with open(get_activity_file_name(cur_activity_name), "r") as file:
-                for line in file:
-                    line = delete_end_of_string(line)
-                    students_activities[student_id[line]].add(cur_activity_name)
+                for student_name in file:
+                    student_name = delete_end_of_string(student_name)
+                    students_activities[student_id[student_name]].add(cur_activity_name)
 
 def create_database():
     connection = sqlite3.connect("student_database.db")
@@ -305,9 +305,9 @@ class Window(QWidget):
         for widget in self.activity_description_page_widgets[activity_name]:
             widget.show()
 
-    def open_table_class(self, name):
+    def open_table_class(self, class_name):
         self.table.view.hide()
-        self.table.view.setWindowTitle(f"Список учеников класса {name}")
+        self.table.view.setWindowTitle(f"Список учеников класса {class_name}")
         self.table.view.show()
         for i in range(column_count):
             self.table.view.showColumn(i)
@@ -315,39 +315,75 @@ class Window(QWidget):
             self.table.view.showRow(i)
             index = self.table.view.model().index(i, 2)
             cur_class_name = self.table.view.model().data(index)
-            if (cur_class_name != name):
+            if (cur_class_name != class_name):
                 self.table.view.hideRow(i)
         self.table.view.hideColumn(0)
         self.table.view.hideColumn(2)
 
-    def open_table_activity(self, name):
+    def open_table_activity(self, activity_name):
         self.table.view.hide()
-        self.table.view.setWindowTitle(f"Список участников мероприятия '{name}'")
+        self.table.view.setWindowTitle(f"Список участников мероприятия '{activity_name}'")
         self.table.view.show()
         for i in range(column_count):
             self.table.view.showColumn(i)
         for i in range(row_count):
             self.table.view.showRow(i)
-            if (not (name in students_activities[i])):
+            if (not (activity_name in students_activities[i])):
                 self.table.view.hideRow(i)
         self.table.view.hideColumn(0)
 
-    def mark_activity_done(self, name):
-        self.amount_to_add = 0
+    def mark_activity_done(self, activity_name):
+        self.hide()
         self.input_win = InputWindow()
         self.input_win.show()
 
         button = QPushButton("Подтвердить")
-        button.clicked.connect(self.get_input)
+        button.clicked.connect(lambda state, x = activity_name : self.add_value_for_activity(x))
         self.input_win.layout.addWidget(button)
 
-    def get_input(self):
+    def get_value_in_cell(self, row, column):
+        index = self.table.view.model().index(row, column)
+        return self.table.view.model().data(index)
+
+    def add_value_in_cell(self, row, column, value):
+        index = self.table.view.model().index(row, column)
+        old_value = self.table.view.model().data(index)
+        self.table.view.model().setData(index, old_value + value)
+        self.table.view.model().submit()
+
+    def add_value_for_activity(self, activity_name):
         text = self.input_win.input.text()
         if text.isdigit():
-            self.amount_to_add = int(text)
+            amount_to_add = int(text)
             self.input_win.close()
+            self.input_win = None
+
+            for i in range(len(self.activity_selection_buttons)):
+                if (self.activity_selection_buttons[i].text() == activity_name):
+                    self.activity_selection_buttons.remove(self.activity_selection_buttons[i])
+                    break
+
+            connection = sqlite3.connect("student_database.db")
+            cursor = connection.cursor()
+
+            with open(get_activity_file_name(activity_name), "r") as file:
+                for student_name in file:
+                    student_name = delete_end_of_string(student_name)
+                    
+                    cursor.execute("UPDATE students SET Бонусы = Бонусы + ? WHERE ID = ?", (amount_to_add, student_id[student_name]))
+                    connection.commit()
+                    self.add_value_in_cell(student_id[student_name], 3, amount_to_add)
+
+            connection.close()
+            self.show()
+            self.open_activity_selection_page()
+
+        else:
+            # send error message
+            self.input_win.input.clear()
 
 
+# запретить создавать одинаковые мероприятия
 if __name__ == "__main__":
     init_data()
     if not exists(db_name):
