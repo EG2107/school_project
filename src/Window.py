@@ -1,142 +1,13 @@
 from PyQt6.QtCore import *
-from PyQt6.QtWidgets import *
+from PyQt6.QtWidgets import QWidget, QLabel
 from PyQt6.QtSql import *
 from PyQt6.QtGui import *
 import sqlite3
-from os.path import exists
-import os
-
-
-global db_name
-db_name = "student_database.db"
-
-global row_count
-row_count = 0
-
-global column_count
-column_count = 4
-
-global students_activities
-students_activities = []
-
-global student_id
-student_id = dict()
-
-
-def get_class_file_name(class_number):
-    return "student_lists\\" + class_number + ".txt"
-
-def get_activity_file_name(activity_name):
-    return "activity_lists\\" + activity_name + ".txt"
-
-def get_activity_description_name(activity_name):
-    return "activity_description\\" + activity_name + ".txt"
-
-def delete_end_of_string(string):
-    if string[len(string) - 1] == '\n':
-        string = string[0 : len(string) - 1]
-    return string
-
-def init_data():
-    with open("all_classes.txt", "r") as all_classes:
-        id = 0
-        for cur_class_name in all_classes:
-            cur_class_name = delete_end_of_string(cur_class_name)
-            with open(get_class_file_name(cur_class_name), "r") as file:
-                for student_name in file:
-                    student_name = delete_end_of_string(student_name)
-                    student_id[student_name + " " + cur_class_name] = id
-                    students_activities.append(set())
-                    id += 1
-        global row_count
-        row_count = id
-
-    with open("all_activities.txt", "r") as all_activities:
-        for cur_activity_name in all_activities:
-            cur_activity_name = delete_end_of_string(cur_activity_name)
-            with open(get_activity_file_name(cur_activity_name), "r") as file:
-                for student_name in file:
-                    student_name = delete_end_of_string(student_name)
-                    students_activities[student_id[student_name]].add(cur_activity_name)
-
-def create_database():
-    connection = sqlite3.connect("student_database.db")
-    cursor = connection.cursor()
-    cursor.execute("""
-        CREATE TABLE IF NOT EXISTS students
-        (ID INTEGER, ФИО TEXT, Класс TEXT, Бонусы INTEGER)
-    """)
-
-    with open("all_classes.txt", "r") as all_classes:
-        id = 0
-        for cur_class_name in all_classes:
-            cur_class_name = delete_end_of_string(cur_class_name)
-            with open(get_class_file_name(cur_class_name), "r") as file:
-                for student_name in file:
-                    student_name = delete_end_of_string(student_name)
-                    cursor.execute("INSERT INTO students VALUES ((?), (?), (?), 0)", (id, student_name, cur_class_name, ))
-                    id += 1
-
-    connection.commit()
-    connection.close()
-
-def delete_activity_files(activity_name):
-    os.remove(get_activity_file_name(activity_name))
-    os.remove(get_activity_description_name(activity_name))
-
-    new_activities = []
-    with open("all_activities.txt", "r") as all_activities:
-        for line in all_activities:
-            line = delete_end_of_string(line)
-            if (line != activity_name):
-                new_activities.append(line + '\n')
-
-    with open("all_activities.txt", "w") as all_activities:
-        all_activities.writelines(new_activities)
-
-
-class Button(QPushButton):
-    def __init__(self, name, parent):
-        super(Button, self).__init__()
-        self.setFixedSize(250, 70)
-        self.setFlat(True)
-        self.setText(name)
-        self.setFont(QFont("Helvetica [Cronyx]", 14))
-
-
-class Table(QTableView):
-    def __init__(self):
-        super().__init__()
-        self.db = QSqlDatabase.addDatabase("QSQLITE")
-        self.db.setDatabaseName(db_name)
-        self.db.open()
-
-        self.model = QSqlTableModel(None, self.db)
-        self.model.setTable("students")
-        self.model.select()
-
-        self.view = QTableView()
-        self.view.setModel(self.model)
-        self.view.move(100, 100)
-        self.view.resize(800, 600)
-        self.view.setColumnWidth(0, 15)
-        self.view.setColumnWidth(1, 300)
-        self.view.setColumnWidth(2, 70)
-        self.view.setColumnWidth(3, 70)
-        self.view.hide()
-
-
-class InputWindow(QWidget):
-    def __init__(self):
-        super().__init__()
-        self.setWindowTitle("Окно ввода данных")
-        self.setGeometry(400, 300, 300, 300)
-        
-        self.layout = QVBoxLayout()
-        self.setLayout(self.layout)
-
-        self.input = QLineEdit()
-        self.layout.addWidget(self.input, alignment=Qt.AlignmentFlag.AlignCenter)
+from functions import *
+from Button import *
+from Table import *
+from InputWindow import *
+from variables import *
 
 
 class Window(QWidget):
@@ -335,6 +206,7 @@ class Window(QWidget):
             self.table.view.showRow(i)
             index = self.table.view.model().index(i, 2)
             cur_class_name = self.table.view.model().data(index)
+            print(cur_class_name, class_name)
             if (cur_class_name != class_name):
                 self.table.view.hideRow(i)
         self.table.view.hideColumn(0)
@@ -409,14 +281,3 @@ class Window(QWidget):
         self.input_win.close()
         self.show()
         self.open_activity_inner_page(activity_name)
-
-
-# запретить создавать одинаковые мероприятия
-if __name__ == "__main__":
-    init_data()
-    if not exists(db_name):
-        create_database()
-    app = QApplication([])
-    win = Window()
-    win.show()
-    app.exec()
