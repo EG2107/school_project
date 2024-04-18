@@ -1,20 +1,15 @@
-from PyQt6.QtCore import *
 from PyQt6.QtWidgets import QWidget, QLabel
-from PyQt6.QtSql import *
-from PyQt6.QtGui import *
-import sqlite3
 from functions import *
 from Button import *
 from Table import *
 from InputWindow import *
-from variables import *
 
 
 class Window(QWidget):
     def __init__(self):
         super().__init__()
         self.table = Table()
-        self.setWindowTitle("Название приложения")
+        self.setWindowTitle("School.Bonus")
         self.setGeometry(100, 100, 1000, 750)
         self.setStyleSheet("background-color: rgb(172, 172, 172);")
         self.create_widgets()
@@ -200,13 +195,12 @@ class Window(QWidget):
         self.table.view.hide()
         self.table.view.setWindowTitle(f"Список учеников класса {class_name}")
         self.table.view.show()
-        for i in range(column_count):
+        for i in range(self.table.column_count):
             self.table.view.showColumn(i)
-        for i in range(row_count):
+        for i in range(self.table.row_count):
             self.table.view.showRow(i)
             index = self.table.view.model().index(i, 2)
             cur_class_name = self.table.view.model().data(index)
-            print(cur_class_name, class_name)
             if (cur_class_name != class_name):
                 self.table.view.hideRow(i)
         self.table.view.hideColumn(0)
@@ -216,11 +210,11 @@ class Window(QWidget):
         self.table.view.hide()
         self.table.view.setWindowTitle(f"Список участников мероприятия '{activity_name}'")
         self.table.view.show()
-        for i in range(column_count):
+        for i in range(self.table.column_count):
             self.table.view.showColumn(i)
-        for i in range(row_count):
+        for i in range(self.table.row_count):
             self.table.view.showRow(i)
-            if (not (activity_name in students_activities[i])):
+            if (not (activity_name in self.table.students_activities[i])):
                 self.table.view.hideRow(i)
         self.table.view.hideColumn(0)
 
@@ -264,9 +258,9 @@ class Window(QWidget):
                 for student_name in file:
                     student_name = delete_end_of_string(student_name)
 
-                    cursor.execute("UPDATE students SET Бонусы = Бонусы + ? WHERE ID = ?", (amount_to_add, student_id[student_name]))
+                    cursor.execute("UPDATE students SET Бонусы = Бонусы + ? WHERE ID = ?", (amount_to_add, self.table.student_id[student_name]))
                     connection.commit()
-                    self.add_value_in_cell(student_id[student_name], 3, amount_to_add)
+                    self.add_value_in_cell(self.table.student_id[student_name], 3, amount_to_add)
 
             connection.close()
             delete_activity_files(activity_name)

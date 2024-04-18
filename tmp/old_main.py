@@ -7,22 +7,6 @@ from os.path import exists
 import os
 
 
-global db_name
-db_name = "student_database.db"
-
-global row_count
-row_count = 0
-
-global column_count
-column_count = 4
-
-global students_activities
-students_activities = []
-
-global student_id
-student_id = dict()
-
-
 def get_class_file_name(class_number):
     return "student_lists\\" + class_number + ".txt"
 
@@ -36,28 +20,6 @@ def delete_end_of_string(string):
     if string[len(string) - 1] == '\n':
         string = string[0 : len(string) - 1]
     return string
-
-def init_data():
-    with open("all_classes.txt", "r") as all_classes:
-        id = 0
-        for cur_class_name in all_classes:
-            cur_class_name = delete_end_of_string(cur_class_name)
-            with open(get_class_file_name(cur_class_name), "r") as file:
-                for student_name in file:
-                    student_name = delete_end_of_string(student_name)
-                    student_id[student_name + " " + cur_class_name] = id
-                    students_activities.append(set())
-                    id += 1
-        global row_count
-        row_count = id
-
-    with open("all_activities.txt", "r") as all_activities:
-        for cur_activity_name in all_activities:
-            cur_activity_name = delete_end_of_string(cur_activity_name)
-            with open(get_activity_file_name(cur_activity_name), "r") as file:
-                for student_name in file:
-                    student_name = delete_end_of_string(student_name)
-                    students_activities[student_id[student_name]].add(cur_activity_name)
 
 def create_database():
     connection = sqlite3.connect("student_database.db")
@@ -107,13 +69,16 @@ class Button(QPushButton):
 class Table(QTableView):
     def __init__(self):
         super().__init__()
+
         self.db = QSqlDatabase.addDatabase("QSQLITE")
-        self.db.setDatabaseName(db_name)
+        self.db.setDatabaseName("student_database.db")
         self.db.open()
 
         self.model = QSqlTableModel(None, self.db)
         self.model.setTable("students")
         self.model.select()
+
+        self.init_additional_data()
 
         self.view = QTableView()
         self.view.setModel(self.model)
@@ -124,6 +89,32 @@ class Table(QTableView):
         self.view.setColumnWidth(2, 70)
         self.view.setColumnWidth(3, 70)
         self.view.hide()
+
+    def init_additional_data(self):
+        self.row_count = 0
+        self.column_count = 4
+        self.students_activities = []
+        self.student_id = dict()
+
+        with open("all_classes.txt", "r") as all_classes:
+            id = 0
+            for cur_class_name in all_classes:
+                cur_class_name = delete_end_of_string(cur_class_name)
+                with open(get_class_file_name(cur_class_name), "r") as file:
+                    for student_name in file:
+                        student_name = delete_end_of_string(student_name)
+                        self.student_id[student_name + " " + cur_class_name] = id
+                        self.students_activities.append(set())
+                        id += 1
+            self.row_count = id
+
+        with open("all_activities.txt", "r") as all_activities:
+            for cur_activity_name in all_activities:
+                cur_activity_name = delete_end_of_string(cur_activity_name)
+                with open(get_activity_file_name(cur_activity_name), "r") as file:
+                    for student_name in file:
+                        student_name = delete_end_of_string(student_name)
+                        self.students_activities[self.student_id[student_name]].add(cur_activity_name)
 
 
 class InputWindow(QWidget):
@@ -143,7 +134,7 @@ class Window(QWidget):
     def __init__(self):
         super().__init__()
         self.table = Table()
-        self.setWindowTitle("Название приложения")
+        self.setWindowTitle("School.Bonus")
         self.setGeometry(100, 100, 1000, 750)
         self.setStyleSheet("background-color: rgb(172, 172, 172);")
         self.create_widgets()
@@ -329,9 +320,9 @@ class Window(QWidget):
         self.table.view.hide()
         self.table.view.setWindowTitle(f"Список учеников класса {class_name}")
         self.table.view.show()
-        for i in range(column_count):
+        for i in range(self.table.column_count):
             self.table.view.showColumn(i)
-        for i in range(row_count):
+        for i in range(self.table.row_count):
             self.table.view.showRow(i)
             index = self.table.view.model().index(i, 2)
             cur_class_name = self.table.view.model().data(index)
@@ -344,11 +335,11 @@ class Window(QWidget):
         self.table.view.hide()
         self.table.view.setWindowTitle(f"Список участников мероприятия '{activity_name}'")
         self.table.view.show()
-        for i in range(column_count):
+        for i in range(self.table.column_count):
             self.table.view.showColumn(i)
-        for i in range(row_count):
+        for i in range(self.table.row_count):
             self.table.view.showRow(i)
-            if (not (activity_name in students_activities[i])):
+            if (not (activity_name in self.table.students_activities[i])):
                 self.table.view.hideRow(i)
         self.table.view.hideColumn(0)
 
@@ -392,9 +383,9 @@ class Window(QWidget):
                 for student_name in file:
                     student_name = delete_end_of_string(student_name)
 
-                    cursor.execute("UPDATE students SET Бонусы = Бонусы + ? WHERE ID = ?", (amount_to_add, student_id[student_name]))
+                    cursor.execute("UPDATE students SET Бонусы = Бонусы + ? WHERE ID = ?", (amount_to_add, self.table.student_id[student_name]))
                     connection.commit()
-                    self.add_value_in_cell(student_id[student_name], 3, amount_to_add)
+                    self.add_value_in_cell(self.table.student_id[student_name], 3, amount_to_add)
 
             connection.close()
             delete_activity_files(activity_name)
@@ -413,8 +404,7 @@ class Window(QWidget):
 
 # запретить создавать одинаковые мероприятия
 if __name__ == "__main__":
-    init_data()
-    if not exists(db_name):
+    if not exists("student_database.db"):
         create_database()
     app = QApplication([])
     win = Window()
