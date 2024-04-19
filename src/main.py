@@ -1,9 +1,6 @@
 from PyQt6.QtWidgets import QApplication
 from os.path import exists
 from functions import *
-from Button import *
-from Table import *
-from InputWindow import *
 from Window import *
 
 
