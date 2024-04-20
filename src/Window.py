@@ -3,6 +3,7 @@ from PyQt6.QtWidgets import QWidget, QVBoxLayout, QLabel, QLineEdit, QTextEdit
 from functions import *
 from Button import *
 from Table import *
+from InputWindow import *
 
 
 class Window(QWidget):
@@ -264,12 +265,8 @@ class Window(QWidget):
     def open_create_new_activity_window(self):
         self.hide()
 
-        self.input_win = QWidget()
-        self.input_win.setWindowTitle("School.Bonus")
+        self.input_win = InputWindow(self)
         self.input_win.setGeometry(400, 250, 450, 600)
-
-        self.input_win.layout = QVBoxLayout()
-        self.input_win.setLayout(self.input_win.layout)
 
         label_name = QLabel("Введите название мероприятия:", self)
         label_name.setFont(QFont("Helvetica [Cronyx]", 12))
@@ -344,12 +341,8 @@ class Window(QWidget):
         self.hide()
         self.error_win = None
 
-        self.input_win = QWidget()
-        self.input_win.setWindowTitle("School.Bonus")
+        self.input_win = InputWindow(self)
         self.input_win.setGeometry(400, 300, 300, 300)
-
-        self.input_win.layout = QVBoxLayout()
-        self.input_win.setLayout(self.input_win.layout)
 
         label = QLabel(f"Введите, сколько бонусов необходимо прибавить\nучастникам мероприятия '{activity_name}':", self)
         label.setFont(QFont("Helvetica [Cronyx]", 12))
