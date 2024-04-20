@@ -4,6 +4,7 @@ from functions import *
 from Button import *
 from Table import *
 from InputWindow import *
+from ErrorWindow import *
 
 
 class Window(QWidget):
@@ -302,9 +303,25 @@ class Window(QWidget):
         self.input_win.show()
 
     def create_new_activity(self):
+        self.error_win = None
+
         activity_name = self.input_win.input_name.text()
         activity_description = self.input_win.input_description.toPlainText()
         activity_participants = self.input_win.input_participants.toPlainText()
+
+        with open("all_activities.txt", "r") as all_activities:
+            for cur_activity_name in all_activities:
+                cur_activity_name = delete_end_of_string(cur_activity_name)
+                if (activity_name == cur_activity_name):
+                    self.error_win = ErrorWindow(f"Мероприятие с таким названием уже существует.\nПожалуйста, выберите другое название.")
+                    return
+
+        str_ind = 0
+        for student_name in activity_participants.split('\n'):
+            str_ind += 1
+            if not (self.table.student_id.get(student_name)):
+                self.error_win = ErrorWindow(f"Ученика '{student_name}' (строка {str_ind}) нет в базе.\nУбедитесь, что данные введены корректно.\nФормат ввода:\n'Фамилия имя отчество класс' (без кавычек)")
+                return
         
         self.activity_selection_buttons[-1].setText(activity_name)
         self.activity_selection_buttons[-1].clicked.connect(lambda state, x = activity_name : self.open_activity_inner_page(x))
@@ -333,6 +350,8 @@ class Window(QWidget):
         self.show()
 
     def return_from_activity_creation(self):
+        if self.error_win:
+            self.error_win.close()
         self.input_win.close()
         self.show()
         self.open_activity_selection_page()
@@ -342,7 +361,7 @@ class Window(QWidget):
         self.error_win = None
 
         self.input_win = InputWindow(self)
-        self.input_win.setGeometry(400, 300, 300, 300)
+        self.input_win.setGeometry(400, 300, 400, 300)
 
         label = QLabel(f"Введите, сколько бонусов необходимо прибавить\nучастникам мероприятия '{activity_name}':", self)
         label.setFont(QFont("Helvetica [Cronyx]", 12))
@@ -388,21 +407,7 @@ class Window(QWidget):
             self.open_activity_selection_page()
 
         else:
-            self.error_win = QWidget()
-            self.error_win.setWindowTitle("School.Bonus")
-            self.error_win.setGeometry(450, 400, 250, 150)
-
-            self.error_win.layout = QVBoxLayout()
-            self.error_win.setLayout(self.error_win.layout)
-
-            label = QLabel("Значение должно являться неотрицательным числом.\nПроверьте корректность введённых данных")
-            self.error_win.layout.addWidget(label, alignment=Qt.AlignmentFlag.AlignCenter)
-
-            button_go_back = QPushButton("Вернуться назад")
-            button_go_back.clicked.connect(self.error_win.close)
-            self.error_win.layout.addWidget(button_go_back)
-
-            self.error_win.show()
+            self.error_win = ErrorWindow("Значение должно являться неотрицательным числом.\nПроверьте корректность введённых данных.")
 
     def return_from_activity_deletion(self, activity_name):
         if self.error_win:
