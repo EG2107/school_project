@@ -33,11 +33,11 @@ class Table(QTableView):
         self.students_activities = []
         self.student_id = dict()
 
-        with open("all_classes.txt", "r") as all_classes:
+        with open("all_classes.txt", "r", encoding="utf-8") as all_classes:
             id = 0
             for cur_class_name in all_classes:
                 cur_class_name = delete_end_of_string(cur_class_name)
-                with open(get_class_file_name(cur_class_name), "r") as file:
+                with open(get_class_file_name(cur_class_name), "r", encoding="utf-8") as file:
                     for student_name in file:
                         student_name = delete_end_of_string(student_name)
                         self.student_id[student_name + " " + cur_class_name] = id
@@ -45,10 +45,10 @@ class Table(QTableView):
                         id += 1
             self.row_count = id
 
-        with open("all_activities.txt", "r") as all_activities:
+        with open("all_activities.txt", "r", encoding="utf-8") as all_activities:
             for cur_activity_name in all_activities:
                 cur_activity_name = delete_end_of_string(cur_activity_name)
-                with open(get_activity_file_name(cur_activity_name), "r") as file:
+                with open(get_activity_file_name(cur_activity_name), "r", encoding="utf-8") as file:
                     for student_name in file:
                         student_name = delete_end_of_string(student_name)
                         self.students_activities[self.student_id[student_name]].add(cur_activity_name)

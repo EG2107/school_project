@@ -61,7 +61,7 @@ class Window(QWidget):
         
     def create_class_selection_buttons(self):
         self.class_selection_buttons = [[] for i in range(12)]
-        with open("all_classes.txt", "r") as all_classes:
+        with open("all_classes.txt", "r", encoding="utf-8") as all_classes:
             for cur_class_name in all_classes:
                 cur_class_name = delete_end_of_string(cur_class_name)
                 grade = int(cur_class_name[0:1])
@@ -86,7 +86,7 @@ class Window(QWidget):
         button_create_activity.clicked.connect(self.open_create_new_activity_window)
         self.activity_selection_buttons.append(button_create_activity)
 
-        with open("all_activities.txt", "r") as all_activities:
+        with open("all_activities.txt", "r", encoding="utf-8") as all_activities:
             for cur_activity_name in all_activities:
                 cur_activity_name = delete_end_of_string(cur_activity_name)
                 button = Button(cur_activity_name, self)
@@ -102,7 +102,7 @@ class Window(QWidget):
 
     def create_activity_inner_pages(self):
         self.activity_inner_page_widgets = {}
-        with open("all_activities.txt", "r") as all_activities:
+        with open("all_activities.txt", "r", encoding="utf-8") as all_activities:
             for cur_activity_name in all_activities:
                 cur_activity_name = delete_end_of_string(cur_activity_name)
                 self.create_activity_inner_page(cur_activity_name)
@@ -135,10 +135,10 @@ class Window(QWidget):
 
     def create_activity_description_pages(self):
         self.activity_description_page_widgets = {}
-        with open("all_activities.txt", "r") as all_activities:
+        with open("all_activities.txt", "r", encoding="utf-8") as all_activities:
             for cur_activity_name in all_activities:
                 cur_activity_name = delete_end_of_string(cur_activity_name)
-                with open(get_activity_description_name(cur_activity_name)) as description:
+                with open(get_activity_description_name(cur_activity_name), "r", encoding="utf-8") as description:
                     self.create_activity_description_page(cur_activity_name, *description)
 
     def create_activity_description_page(self, activity_name, activity_description):
@@ -171,6 +171,7 @@ class Window(QWidget):
         for widgets in self.activity_description_page_widgets.values():
             for widget in widgets:
                 widget.hide()
+        self.setGeometry(100, 100, 1000, 750)
     
     def open_main_page(self):
         self.hide_all_buttons()
@@ -309,7 +310,7 @@ class Window(QWidget):
         activity_description = self.input_win.input_description.toPlainText()
         activity_participants = self.input_win.input_participants.toPlainText()
 
-        with open("all_activities.txt", "r") as all_activities:
+        with open("all_activities.txt", "r", encoding="utf-8") as all_activities:
             for cur_activity_name in all_activities:
                 cur_activity_name = delete_end_of_string(cur_activity_name)
                 if (activity_name == cur_activity_name):
@@ -333,21 +334,21 @@ class Window(QWidget):
 
         self.create_activity_inner_page(activity_name)
         self.create_activity_description_page(activity_name, activity_description)
+        self.hide_all_buttons()
 
-        with open("all_activities.txt", "a") as all_activities:
+        with open("all_activities.txt", "a", encoding="utf-8") as all_activities:
             all_activities.write(activity_name + '\n')
 
-        with open(get_activity_file_name(activity_name), "a") as participants_list:
+        with open(get_activity_file_name(activity_name), "a", encoding="utf-8") as participants_list:
             participants_list.writelines(activity_participants)
             for student_name in activity_participants.split('\n'):
                 self.table.students_activities[self.table.student_id[student_name]].add(activity_name)
             
-        with open(get_activity_description_name(activity_name), "a") as description:
+        with open(get_activity_description_name(activity_name), "a", encoding="utf-8") as description:
             description.write(activity_description)
 
         self.input_win.close()
         self.open_activity_selection_page()
-        self.show()
 
     def return_from_activity_creation(self):
         if self.error_win:
@@ -393,7 +394,7 @@ class Window(QWidget):
 
             connection = sqlite3.connect("student_database.db")
             cursor = connection.cursor()
-            with open(get_activity_file_name(activity_name), "r") as file:
+            with open(get_activity_file_name(activity_name), "r", encoding="utf-8") as file:
                 for student_name in file:
                     student_name = delete_end_of_string(student_name)
 
@@ -418,7 +419,8 @@ class Window(QWidget):
 
     def closeEvent(self, event):
         if self.want_to_close:
-            super().closeEvent(event)
+            super(Window, self).closeEvent(event)
+            self.table.view.close()
         else:
             event.ignore()
             self.close_window()
