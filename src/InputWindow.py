@@ -13,3 +13,5 @@ class InputWindow(QWidget):
     def closeEvent(self, event):
         super(InputWindow, self).closeEvent(event)
         self.parent_window.show()
+        if self.parent_window.error_win:
+            self.parent_window.error_win.close()

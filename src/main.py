@@ -1,7 +1,7 @@
 from PyQt6.QtWidgets import QApplication
 from os.path import exists
-from functions import *
-from Window import *
+from functions import create_database
+from Window import Window
 
 
 if __name__ == "__main__":

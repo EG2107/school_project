@@ -1,22 +1,27 @@
 from PyQt6.QtCore import Qt
-from PyQt6.QtWidgets import QWidget, QVBoxLayout, QLabel, QLineEdit, QTextEdit
-from functions import *
-from Button import *
-from Table import *
-from InputWindow import *
-from ErrorWindow import *
+from PyQt6.QtWidgets import QWidget, QPushButton, QVBoxLayout, QLabel, QLineEdit, QTextEdit
+from PyQt6.QtGui import QFont
+import os
+import sqlite3
+from functions import delete_end_of_string, get_activity_list_name, get_activity_description_name
+from Button import Button
+from Table import Table
+from InputWindow import InputWindow
+from ErrorWindow import ErrorWindow
 
 
 class Window(QWidget):
     def __init__(self):
         super().__init__()
+        self.want_to_close = False
+        self.input_win = None
+        self.error_win = None
         self.table = Table()
         self.setWindowTitle("School.Bonus")
         self.setGeometry(100, 100, 1000, 750)
-        self.setStyleSheet("background-color: rgb(172, 172, 172);")
+        self.setStyleSheet("background-color: rgb(172, 172, 172)")
         self.create_widgets()
         self.open_main_page()
-        self.want_to_close = False
     
     def create_widgets(self):
         self.layout = QVBoxLayout()
@@ -28,7 +33,6 @@ class Window(QWidget):
         self.create_activity_inner_pages()
         self.create_activity_description_pages()
         self.hide_all_buttons()
-        self.input_win = None
 
     def create_main_page_buttons(self):
         button_guide = Button("Руководство по использованию", self)
@@ -114,6 +118,10 @@ class Window(QWidget):
         label_activity_name.setFont(QFont("Helvetica [Cronyx]", 18))
         self.activity_inner_page_widgets[activity_name].append(label_activity_name)
 
+        button_edit = Button("Редактировать", self)
+        button_edit.clicked.connect(lambda state, x = activity_name : self.open_activity_edit_window(x))
+        self.activity_inner_page_widgets[activity_name].append(button_edit)
+
         button_participants_list = Button("Участники", self)
         button_participants_list.clicked.connect(lambda state, x = activity_name : self.open_table_activity(x))
         self.activity_inner_page_widgets[activity_name].append(button_participants_list)
@@ -139,7 +147,7 @@ class Window(QWidget):
             for cur_activity_name in all_activities:
                 cur_activity_name = delete_end_of_string(cur_activity_name)
                 with open(get_activity_description_name(cur_activity_name), "r", encoding="utf-8") as description:
-                    self.create_activity_description_page(cur_activity_name, *description)
+                    self.create_activity_description_page(cur_activity_name, description.read())
 
     def create_activity_description_page(self, activity_name, activity_description):
         self.activity_description_page_widgets[activity_name] = []
@@ -156,6 +164,10 @@ class Window(QWidget):
 
     def hide_all_buttons(self):
         self.table.view.hide()
+        if self.error_win:
+            self.error_win.close()
+        if self.input_win:
+            self.input_win.close()
         for button in self.main_page_buttons:
             button.hide()
         for button in self.grade_selection_buttons:
@@ -171,7 +183,6 @@ class Window(QWidget):
         for widgets in self.activity_description_page_widgets.values():
             for widget in widgets:
                 widget.hide()
-        self.setGeometry(100, 100, 1000, 750)
     
     def open_main_page(self):
         self.hide_all_buttons()
@@ -310,6 +321,10 @@ class Window(QWidget):
         activity_description = self.input_win.input_description.toPlainText()
         activity_participants = self.input_win.input_participants.toPlainText()
 
+        if len(activity_name) == 0:
+            self.error_win = ErrorWindow("Пожалуйста, введите название мероприятия.")
+            return
+
         with open("all_activities.txt", "r", encoding="utf-8") as all_activities:
             for cur_activity_name in all_activities:
                 cur_activity_name = delete_end_of_string(cur_activity_name)
@@ -318,12 +333,22 @@ class Window(QWidget):
                     return
 
         str_ind = 0
+        student_line = {}
         for student_name in activity_participants.split('\n'):
             str_ind += 1
-            if not (self.table.student_id.get(student_name)):
-                self.error_win = ErrorWindow(f"Ученика '{student_name}' (строка {str_ind}) нет в базе.\nУбедитесь, что данные введены корректно.\nФормат ввода:\n'Фамилия имя отчество класс' (без кавычек)")
+            if (len(student_name) == 0):
+                continue
+
+            if (student_line.get(student_name) is None):
+                student_line[student_name] = str_ind
+            else:
+                self.error_win = ErrorWindow(f"Ученик '{student_name}' встречается\nв двух строках, а именно в {student_line[student_name]}-ой и {str_ind}-ой.\nПожалуйста, проверьте, правильно ли Вы ввели данные.")
                 return
-        
+            
+            if (self.table.student_id.get(student_name) is None):
+                self.error_win = ErrorWindow(f"Ученика '{student_name}'\n(строка {str_ind}) нет в базе.\nУбедитесь, что данные введены корректно.\nФормат ввода:\n'Фамилия имя отчество класс' (без кавычек)")
+                return
+
         self.activity_selection_buttons[-1].setText(activity_name)
         self.activity_selection_buttons[-1].clicked.connect(lambda state, x = activity_name : self.open_activity_inner_page(x))
 
@@ -331,20 +356,22 @@ class Window(QWidget):
         button_go_back_from_activity_selection.clicked.connect(self.open_main_page)
         self.layout.addWidget(button_go_back_from_activity_selection, alignment=Qt.AlignmentFlag.AlignCenter)
         self.activity_selection_buttons.append(button_go_back_from_activity_selection)
+        self.hide_all_buttons()
 
         self.create_activity_inner_page(activity_name)
         self.create_activity_description_page(activity_name, activity_description)
-        self.hide_all_buttons()
 
         with open("all_activities.txt", "a", encoding="utf-8") as all_activities:
             all_activities.write(activity_name + '\n')
 
-        with open(get_activity_file_name(activity_name), "a", encoding="utf-8") as participants_list:
-            participants_list.writelines(activity_participants)
+        with open(get_activity_list_name(activity_name), "w", encoding="utf-8") as participants_list:
             for student_name in activity_participants.split('\n'):
+                if (len(student_name) == 0):
+                    continue
+                participants_list.write(student_name + '\n')
                 self.table.students_activities[self.table.student_id[student_name]].add(activity_name)
             
-        with open(get_activity_description_name(activity_name), "a", encoding="utf-8") as description:
+        with open(get_activity_description_name(activity_name), "w", encoding="utf-8") as description:
             description.write(activity_description)
 
         self.input_win.close()
@@ -356,6 +383,84 @@ class Window(QWidget):
         self.input_win.close()
         self.show()
         self.open_activity_selection_page()
+
+    def open_activity_edit_window(self, activity_name):
+        self.hide()
+
+        self.input_win = InputWindow(self)
+        self.input_win.setGeometry(400, 250, 450, 600)
+
+        label_description = QLabel("Введите описание мероприятия:\n(Если не хотите менять описание мероприятия,\nоставьте поле пустым.)", self)
+        label_description.setFont(QFont("Helvetica [Cronyx]", 12))
+        self.input_win.layout.addWidget(label_description, alignment=Qt.AlignmentFlag.AlignCenter)
+
+        self.input_win.input_description = QTextEdit()
+        self.input_win.input_description.setMinimumWidth(380)
+        self.input_win.layout.addWidget(self.input_win.input_description, alignment=Qt.AlignmentFlag.AlignCenter)
+
+        label_participants = QLabel("Введите ФИО и класс участников мероприятия:\n(Если не хотите менять участников мероприятия,\nоставьте поле пустым.)", self)
+        label_participants.setFont(QFont("Helvetica [Cronyx]", 12))
+        self.input_win.layout.addWidget(label_participants, alignment=Qt.AlignmentFlag.AlignCenter)
+
+        self.input_win.input_participants = QTextEdit()
+        self.input_win.input_participants.setMinimumWidth(380)
+        self.input_win.layout.addWidget(self.input_win.input_participants, alignment=Qt.AlignmentFlag.AlignCenter)
+
+        button_go_back = QPushButton("Отмена")
+        button_go_back.clicked.connect(lambda state, x = activity_name : self.return_from_activity_edit_or_deletion(x))
+        self.input_win.layout.addWidget(button_go_back)
+
+        button_commit = QPushButton("Подтвердить")
+        button_commit.clicked.connect(lambda state, x = activity_name : self.edit_activity(x))
+        self.input_win.layout.addWidget(button_commit)
+
+        self.input_win.show()
+
+    def edit_activity(self, activity_name):
+        self.error_win = None
+
+        activity_description = self.input_win.input_description.toPlainText()
+        activity_participants = self.input_win.input_participants.toPlainText()
+
+        want_to_change_participants = False
+        str_ind = 0
+        student_line = {}
+        for student_name in activity_participants.split('\n'):
+            str_ind += 1
+            if (len(student_name) == 0):
+                continue
+            want_to_change_participants = True
+
+            if (student_line.get(student_name) is None):
+                student_line[student_name] = str_ind
+            else:
+                self.error_win = ErrorWindow(f"Ученик '{student_name}' встречается\nв двух строках, а именно в {student_line[student_name]}-ой и {str_ind}-ой.\nПожалуйста, проверьте, правильно ли Вы ввели данные.")
+                return
+            
+            if (self.table.student_id.get(student_name) is None):
+                self.error_win = ErrorWindow(f"Ученика '{student_name}' (строка {str_ind}) нет в базе.\nУбедитесь, что данные введены корректно.\nФормат ввода:\n'Фамилия имя отчество класс' (без кавычек)")
+                return
+
+        if want_to_change_participants:
+            with open(get_activity_list_name(activity_name), "r", encoding="utf-8") as participants_list:
+                for student_name in participants_list:
+                    student_name = delete_end_of_string(student_name)
+                    self.table.students_activities[self.table.student_id[student_name]].remove(activity_name)
+
+            with open(get_activity_list_name(activity_name), "w", encoding="utf-8") as participants_list:
+                for student_name in activity_participants.split('\n'):
+                    if (len(student_name) == 0):
+                        continue
+                    participants_list.write(student_name + '\n')
+                    self.table.students_activities[self.table.student_id[student_name]].add(activity_name)
+        
+        if (len(activity_description)):
+            self.activity_description_page_widgets[activity_name][0].setText(activity_description)
+            with open(get_activity_description_name(activity_name), "w", encoding="utf-8") as description:
+                description.write(activity_description)
+
+        self.input_win.close()
+        self.open_activity_inner_page(activity_name)
 
     def open_delete_activity_window(self, activity_name):
         self.hide()
@@ -372,7 +477,7 @@ class Window(QWidget):
         self.input_win.layout.addWidget(self.input_win.input, alignment=Qt.AlignmentFlag.AlignCenter)
 
         button_go_back = QPushButton("Отмена")
-        button_go_back.clicked.connect(lambda state, x = activity_name : self.return_from_activity_deletion(x))
+        button_go_back.clicked.connect(lambda state, x = activity_name : self.return_from_activity_edit_or_deletion(x))
         self.input_win.layout.addWidget(button_go_back)
 
         button_commit = QPushButton("Подтвердить")
@@ -394,7 +499,7 @@ class Window(QWidget):
 
             connection = sqlite3.connect("student_database.db")
             cursor = connection.cursor()
-            with open(get_activity_file_name(activity_name), "r", encoding="utf-8") as file:
+            with open(get_activity_list_name(activity_name), "r", encoding="utf-8") as file:
                 for student_name in file:
                     student_name = delete_end_of_string(student_name)
 
@@ -403,14 +508,28 @@ class Window(QWidget):
                     self.add_value_in_cell(self.table.student_id[student_name], 3, amount_to_add)
 
             connection.close()
-            delete_activity_files(activity_name)
+            self.delete_activity_files(activity_name)
             self.show()
             self.open_activity_selection_page()
 
         else:
             self.error_win = ErrorWindow("Значение должно являться неотрицательным числом.\nПроверьте корректность введённых данных.")
+    
+    def delete_activity_files(self, activity_name):
+        os.remove(get_activity_list_name(activity_name))
+        os.remove(get_activity_description_name(activity_name))
 
-    def return_from_activity_deletion(self, activity_name):
+        new_activities = []
+        with open("all_activities.txt", "r", encoding="utf-8") as all_activities:
+            for line in all_activities:
+                line = delete_end_of_string(line)
+                if (line != activity_name):
+                    new_activities.append(line + '\n')
+
+        with open("all_activities.txt", "w", encoding="utf-8") as all_activities:
+            all_activities.writelines(new_activities)
+
+    def return_from_activity_edit_or_deletion(self, activity_name):
         if self.error_win:
             self.error_win.close()
         self.input_win.close()
