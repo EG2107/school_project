@@ -15,7 +15,7 @@ def get_activity_list_name(activity_name):
 def get_activity_description_name(activity_name):
     return "activity_description\\" + activity_name + ".txt"
 
-def create_database():
+def create_student_database():
     connection = sqlite3.connect("student_database.db")
     cursor = connection.cursor()
     cursor.execute("""
@@ -32,6 +32,25 @@ def create_database():
                     student_name = delete_end_of_string(student_name)
                     cursor.execute("INSERT INTO students VALUES ((?), (?), (?), 0)", (id, student_name, cur_class_name, ))
                     id += 1
+
+    connection.commit()
+    connection.close()
+
+def create_merch_database():
+    connection = sqlite3.connect("merch_database.db")
+    cursor = connection.cursor()
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS merch
+        (ID INTEGER, Название товара TEXT, Количество INTEGER)
+    """)
+
+    id = 0
+    with open("merch_list.txt", "r", encoding="utf-8") as merch_list:
+        for item_name in merch_list:
+            item_name = delete_end_of_string(item_name)
+            cursor.execute("INSERT INTO merch VALUES ((?), (?), 0)", (id, item_name, ))
+            id += 1
+
 
     connection.commit()
     connection.close()

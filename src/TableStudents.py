@@ -3,7 +3,7 @@ from PyQt6.QtSql import QSqlDatabase, QSqlTableModel
 from functions import delete_end_of_string, get_class_list_name, get_activity_list_name
 
 
-class Table(QTableView):
+class TableStudents(QTableView):
     def __init__(self):
         super().__init__()
 

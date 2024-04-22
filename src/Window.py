@@ -5,7 +5,8 @@ import os
 import sqlite3
 from functions import delete_end_of_string, get_activity_list_name, get_activity_description_name
 from Button import Button
-from Table import Table
+from TableStudents import TableStudents
+from TableMerch import TableMerch
 from InputWindow import InputWindow
 from ErrorWindow import ErrorWindow
 
@@ -16,7 +17,8 @@ class Window(QWidget):
         self.want_to_close = False
         self.input_win = None
         self.error_win = None
-        self.table = Table()
+        self.table_students = TableStudents()
+        self.table_merch = TableMerch()
         self.setWindowTitle("School.Bonus")
         self.setGeometry(100, 100, 1000, 750)
         self.setStyleSheet("background-color: rgb(172, 172, 172)")
@@ -42,6 +44,7 @@ class Window(QWidget):
         button_activity_lists = Button("Мероприятия", self)
         button_activity_lists.clicked.connect(self.open_activity_selection_page)
         button_merch = Button("Мерч", self)
+        button_merch.clicked.connect(self.table_merch.view.show)
         button_exit = Button("Закрыть", self)
         button_exit.clicked.connect(self.close_window)
 
@@ -163,7 +166,7 @@ class Window(QWidget):
         self.activity_description_page_widgets[activity_name].append(button_go_back_from_activity_description)
 
     def hide_all_buttons(self):
-        self.table.view.hide()
+        self.table_students.view.hide()
         if self.error_win:
             self.error_win.close()
         if self.input_win:
@@ -239,41 +242,41 @@ class Window(QWidget):
         self.show()
 
     def open_table_class(self, class_name):
-        self.table.view.hide()
-        self.table.view.setWindowTitle(f"Список учеников класса {class_name}")
-        self.table.view.show()
-        for i in range(self.table.column_count):
-            self.table.view.showColumn(i)
-        for i in range(self.table.row_count):
-            self.table.view.showRow(i)
-            index = self.table.view.model().index(i, 2)
-            cur_class_name = self.table.view.model().data(index)
+        self.table_students.view.hide()
+        self.table_students.view.setWindowTitle(f"Список учеников класса {class_name}")
+        self.table_students.view.show()
+        for i in range(self.table_students.column_count):
+            self.table_students.view.showColumn(i)
+        for i in range(self.table_students.row_count):
+            self.table_students.view.showRow(i)
+            index = self.table_students.view.model().index(i, 2)
+            cur_class_name = self.table_students.view.model().data(index)
             if (cur_class_name != class_name):
-                self.table.view.hideRow(i)
-        self.table.view.hideColumn(0)
-        self.table.view.hideColumn(2)
+                self.table_students.view.hideRow(i)
+        self.table_students.view.hideColumn(0)
+        self.table_students.view.hideColumn(2)
 
     def open_table_activity(self, activity_name):
-        self.table.view.hide()
-        self.table.view.setWindowTitle(f"Список участников мероприятия '{activity_name}'")
-        self.table.view.show()
-        for i in range(self.table.column_count):
-            self.table.view.showColumn(i)
-        for i in range(self.table.row_count):
-            self.table.view.showRow(i)
-            if (not (activity_name in self.table.students_activities[i])):
-                self.table.view.hideRow(i)
-        self.table.view.hideColumn(0)
+        self.table_students.view.hide()
+        self.table_students.view.setWindowTitle(f"Список участников мероприятия '{activity_name}'")
+        self.table_students.view.show()
+        for i in range(self.table_students.column_count):
+            self.table_students.view.showColumn(i)
+        for i in range(self.table_students.row_count):
+            self.table_students.view.showRow(i)
+            if (not (activity_name in self.table_students.students_activities[i])):
+                self.table_students.view.hideRow(i)
+        self.table_students.view.hideColumn(0)
 
     def get_value_in_cell(self, row, column):
-        index = self.table.view.model().index(row, column)
-        return self.table.view.model().data(index)
+        index = self.table_students.view.model().index(row, column)
+        return self.table_students.view.model().data(index)
 
     def add_value_in_cell(self, row, column, value):
-        index = self.table.view.model().index(row, column)
-        old_value = self.table.view.model().data(index)
-        self.table.view.model().setData(index, old_value + value)
-        self.table.view.model().submit()
+        index = self.table_students.view.model().index(row, column)
+        old_value = self.table_students.view.model().data(index)
+        self.table_students.view.model().setData(index, old_value + value)
+        self.table_students.view.model().submit()
 
     def open_create_new_activity_window(self):
         self.hide()
@@ -345,7 +348,7 @@ class Window(QWidget):
                 self.error_win = ErrorWindow(f"Ученик '{student_name}' встречается\nв двух строках, а именно в {student_line[student_name]}-ой и {str_ind}-ой.\nПожалуйста, проверьте, правильно ли Вы ввели данные.")
                 return
             
-            if (self.table.student_id.get(student_name) is None):
+            if (self.table_students.student_id.get(student_name) is None):
                 self.error_win = ErrorWindow(f"Ученика '{student_name}'\n(строка {str_ind}) нет в базе.\nУбедитесь, что данные введены корректно.\nФормат ввода:\n'Фамилия имя отчество класс' (без кавычек)")
                 return
 
@@ -369,7 +372,7 @@ class Window(QWidget):
                 if (len(student_name) == 0):
                     continue
                 participants_list.write(student_name + '\n')
-                self.table.students_activities[self.table.student_id[student_name]].add(activity_name)
+                self.table_students.students_activities[self.table_students.student_id[student_name]].add(activity_name)
             
         with open(get_activity_description_name(activity_name), "w", encoding="utf-8") as description:
             description.write(activity_description)
@@ -437,7 +440,7 @@ class Window(QWidget):
                 self.error_win = ErrorWindow(f"Ученик '{student_name}' встречается\nв двух строках, а именно в {student_line[student_name]}-ой и {str_ind}-ой.\nПожалуйста, проверьте, правильно ли Вы ввели данные.")
                 return
             
-            if (self.table.student_id.get(student_name) is None):
+            if (self.table_students.student_id.get(student_name) is None):
                 self.error_win = ErrorWindow(f"Ученика '{student_name}' (строка {str_ind}) нет в базе.\nУбедитесь, что данные введены корректно.\nФормат ввода:\n'Фамилия имя отчество класс' (без кавычек)")
                 return
 
@@ -445,14 +448,14 @@ class Window(QWidget):
             with open(get_activity_list_name(activity_name), "r", encoding="utf-8") as participants_list:
                 for student_name in participants_list:
                     student_name = delete_end_of_string(student_name)
-                    self.table.students_activities[self.table.student_id[student_name]].remove(activity_name)
+                    self.table_students.students_activities[self.table_students.student_id[student_name]].remove(activity_name)
 
             with open(get_activity_list_name(activity_name), "w", encoding="utf-8") as participants_list:
                 for student_name in activity_participants.split('\n'):
                     if (len(student_name) == 0):
                         continue
                     participants_list.write(student_name + '\n')
-                    self.table.students_activities[self.table.student_id[student_name]].add(activity_name)
+                    self.table_students.students_activities[self.table_students.student_id[student_name]].add(activity_name)
         
         if (len(activity_description)):
             self.activity_description_page_widgets[activity_name][0].setText(activity_description)
@@ -503,9 +506,9 @@ class Window(QWidget):
                 for student_name in file:
                     student_name = delete_end_of_string(student_name)
 
-                    cursor.execute("UPDATE students SET Бонусы = Бонусы + ? WHERE ID = ?", (amount_to_add, self.table.student_id[student_name]))
+                    cursor.execute("UPDATE students SET Бонусы = Бонусы + ? WHERE ID = ?", (amount_to_add, self.table_students.student_id[student_name]))
                     connection.commit()
-                    self.add_value_in_cell(self.table.student_id[student_name], 3, amount_to_add)
+                    self.add_value_in_cell(self.table_students.student_id[student_name], 3, amount_to_add)
 
             connection.close()
             self.delete_activity_files(activity_name)
@@ -539,7 +542,7 @@ class Window(QWidget):
     def closeEvent(self, event):
         if self.want_to_close:
             super(Window, self).closeEvent(event)
-            self.table.view.close()
+            self.table_students.view.close()
         else:
             event.ignore()
             self.close_window()
