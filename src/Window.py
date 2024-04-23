@@ -54,14 +54,6 @@ class Window(QWidget):
         button_merch = Button("Мерч", self)
         button_merch.clicked.connect(self.table_merch.show)
         self.main_page_buttons.append(button_merch)
-
-        button_add_student = Button("Добавить ученика", self)
-        button_add_student.clicked.connect(self.open_add_student_window)
-        self.main_page_buttons.append(button_add_student)
-
-        button_delete_student = Button("Удалить ученика", self)
-        button_delete_student.clicked.connect(self.open_delete_student_window)
-        self.main_page_buttons.append(button_delete_student)
         
         button_exit = Button("Закрыть", self)
         button_exit.clicked.connect(self.close_window)
@@ -261,9 +253,10 @@ class Window(QWidget):
         self.show()
 
     def open_table_class(self, class_name):
-        self.table_students.close()
+        self.table_students.hide()
         self.table_students.setWindowTitle(f"Список учеников класса {class_name}")
         self.table_students.show()
+
         for i in range(self.table_students.table_model.columnCount()):
             self.table_students.showColumn(i)
         for i in range(self.table_students.table_model.rowCount()):
@@ -274,6 +267,7 @@ class Window(QWidget):
                 self.table_students.hideRow(i)
         self.table_students.hideColumn(0)
         self.table_students.hideColumn(2)
+
         self.table_students.setSortingEnabled(True)
         self.table_students.sortByColumn(1, Qt.SortOrder.AscendingOrder)
         self.table_students.setSortingEnabled(False)
@@ -550,75 +544,6 @@ class Window(QWidget):
         self.input_win.close()
         self.show()
         self.open_activity_inner_page(activity_name)
-
-    def open_add_student_window(self):
-        self.hide()
-
-        self.input_win = InputWindow(self)
-        self.input_win.setGeometry(400, 300, 400, 300)
-
-        label_name = QLabel("Введите ФИО ученика:", self)
-        label_name.setFont(QFont("Helvetica [Cronyx]", 12))
-        self.input_win.layout.addWidget(label_name, alignment=Qt.AlignmentFlag.AlignCenter)
-
-        self.input_win.input_name = QLineEdit()
-        self.input_win.layout.addWidget(self.input_win.input_name, alignment=Qt.AlignmentFlag.AlignCenter)
-
-        label_class = QLabel("Введите класс ученика:", self)
-        label_class.setFont(QFont("Helvetica [Cronyx]", 12))
-        self.input_win.layout.addWidget(label_class, alignment=Qt.AlignmentFlag.AlignCenter)
-
-        self.input_win.input_class = QLineEdit()
-        self.input_win.layout.addWidget(self.input_win.input_class, alignment=Qt.AlignmentFlag.AlignCenter)
-
-        button_go_back = QPushButton("Отмена")
-        button_go_back.clicked.connect(self.open_main_page)
-        self.input_win.layout.addWidget(button_go_back)
-
-        button_commit = QPushButton("Подтвердить")
-        button_commit.clicked.connect(self.add_student)
-        self.input_win.layout.addWidget(button_commit)
-
-        self.input_win.show()
-
-    def add_student(self):
-        student_name = self.input_win.input_name.text()
-        student_class = self.input_win.input_class.text()
-
-        if (len(student_name) == 0):
-            self.error_win = ErrorWindow("ФИО ученика не введено")
-            return
-
-        class_exists = False
-        with open("all_classes.txt", "r", encoding="utf-8") as all_classes:
-            for cur_class_name in all_classes:
-                cur_class_name = delete_end_of_string(cur_class_name)
-                if (student_class == cur_class_name):
-                    class_exists = True
-
-        if not class_exists:
-            self.error_win = ErrorWindow(f"Класса '{student_class}' не существует.\nУбедитесь, что данные введены корректно.")
-            return
-
-        connection = sqlite3.connect("student_database.db")
-        cursor = connection.cursor()
-        cursor.execute("INSERT INTO students VALUES ((?), (?), (?), 0)", (self.table_students.table_model.rowCount(), student_name, student_class, ))
-        connection.commit()
-        connection.close()
-
-        self.table_students.table_model.insertRow(self.table_students.table_model.rowCount())
-        self.table_students.table_model.insertRow(self.table_students.table_model.rowCount())
-        #self.table_students.set_value_in_cell(self.table_students.table_model.rowCount() - 1, 1, student_name)
-
-        #self.open_table_class(student_class)
-        self.table_students.close()
-
-        self.input_win.close()
-        self.show()
-    
-
-    def open_delete_student_window(self):
-        pass
 
     def closeEvent(self, event):
         if self.want_to_close:

@@ -52,11 +52,6 @@ class TableStudents(QTableView):
     def get_value_in_cell(self, row, column):
         index = self.table_model.index(row, column)
         return self.table_model.data(index)
-    
-    def set_value_in_cell(self, row, column, value):
-        index = self.table_model.index(row, column)
-        self.table_model.setData(index, value)
-        self.table_model.submit()
 
     def add_value_in_cell(self, row, column, value):
         index = self.table_model.index(row, column)
