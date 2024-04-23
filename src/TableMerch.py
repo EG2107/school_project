@@ -10,22 +10,16 @@ class TableMerch(QTableView):
         self.db.setDatabaseName("merch_database.db")
         self.db.open()
 
-        self.model = QSqlTableModel(None, self.db)
-        self.model.setTable("merch")
-        self.model.select()
+        self.table_model = QSqlTableModel(None, self.db)
+        self.table_model.setTable("merch")
+        self.table_model.select()
 
-        self.view = QTableView()
-        self.view.setModel(self.model)
-        self.view.move(100, 100)
-        self.view.resize(800, 600)
-        self.view.setColumnWidth(0, 15)
-        self.view.setColumnWidth(1, 300)
-        self.view.setColumnWidth(2, 100)
-        self.view.setWindowTitle("Список мерча")
-        self.view.hideColumn(0)
-        self.view.hide()
-
-        self.row_count = 0
-        with open("merch_list.txt", "r", encoding="utf-8") as merch_list:
-            for item_name in merch_list:
-                self.row_count += 1
+        self.setModel(self.table_model)
+        self.move(100, 100)
+        self.resize(800, 600)
+        self.setColumnWidth(0, 15)
+        self.setColumnWidth(1, 300)
+        self.setColumnWidth(2, 100)
+        self.setWindowTitle("Список мерча")
+        self.hideColumn(0)
+        self.hide()

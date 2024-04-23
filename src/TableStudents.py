@@ -11,25 +11,22 @@ class TableStudents(QTableView):
         self.db.setDatabaseName("student_database.db")
         self.db.open()
 
-        self.model = QSqlTableModel(None, self.db)
-        self.model.setTable("students")
-        self.model.select()
+        self.table_model = QSqlTableModel(None, self.db)
+        self.table_model.setTable("students")
+        self.table_model.select()
 
         self.init_additional_data()
 
-        self.view = QTableView()
-        self.view.setModel(self.model)
-        self.view.move(100, 100)
-        self.view.resize(800, 600)
-        self.view.setColumnWidth(0, 15)
-        self.view.setColumnWidth(1, 300)
-        self.view.setColumnWidth(2, 70)
-        self.view.setColumnWidth(3, 85)
-        self.view.hide()
+        self.setModel(self.table_model)
+        self.move(100, 100)
+        self.resize(800, 600)
+        self.setColumnWidth(0, 15)
+        self.setColumnWidth(1, 300)
+        self.setColumnWidth(2, 70)
+        self.setColumnWidth(3, 85)
+        self.hide()
 
     def init_additional_data(self):
-        self.row_count = 0
-        self.column_count = 4
         self.students_activities = []
         self.student_id = dict()
 
@@ -43,7 +40,6 @@ class TableStudents(QTableView):
                         self.student_id[student_name + " " + cur_class_name] = id
                         self.students_activities.append(set())
                         id += 1
-            self.row_count = id
 
         with open("all_activities.txt", "r", encoding="utf-8") as all_activities:
             for cur_activity_name in all_activities:
@@ -52,3 +48,18 @@ class TableStudents(QTableView):
                     for student_name in file:
                         student_name = delete_end_of_string(student_name)
                         self.students_activities[self.student_id[student_name]].add(cur_activity_name)
+
+    def get_value_in_cell(self, row, column):
+        index = self.table_model.index(row, column)
+        return self.table_model.data(index)
+    
+    def set_value_in_cell(self, row, column, value):
+        index = self.table_model.index(row, column)
+        self.table_model.setData(index, value)
+        self.table_model.submit()
+
+    def add_value_in_cell(self, row, column, value):
+        index = self.table_model.index(row, column)
+        old_value = self.table_model.data(index)
+        self.table_model.setData(index, old_value + value)
+        self.table_model.submit()
