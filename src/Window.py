@@ -320,24 +320,18 @@ class Window(QWidget):
 
         self.input_win.show()
 
-    def create_new_activity(self):
-        self.error_win = None
-
-        activity_name = self.input_win.input_name.text()
-        activity_description = self.input_win.input_description.toPlainText()
-        activity_participants = self.input_win.input_participants.toPlainText()
-
+    def check_new_activity(self, activity_name, activity_participants):
         if len(activity_name) == 0:
             self.error_win = ErrorWindow("Пожалуйста, введите название мероприятия.")
-            return
+            return False
 
         with open("all_activities.txt", "r", encoding="utf-8") as all_activities:
             for cur_activity_name in all_activities:
                 cur_activity_name = delete_end_of_string(cur_activity_name)
                 if (activity_name == cur_activity_name):
                     self.error_win = ErrorWindow(f"Мероприятие с таким названием уже существует.\nПожалуйста, выберите другое название.")
-                    return
-
+                    return False
+                
         str_ind = 0
         student_line = {}
         for student_name in activity_participants.split('\n'):
@@ -349,39 +343,49 @@ class Window(QWidget):
                 student_line[student_name] = str_ind
             else:
                 self.error_win = ErrorWindow(f"Ученик '{student_name}' встречается\nв двух строках, а именно в {student_line[student_name]}-ой и {str_ind}-ой.\nПожалуйста, проверьте, правильно ли Вы ввели данные.")
-                return
+                return False
             
             if (self.table_students.student_id.get(student_name) is None):
                 self.error_win = ErrorWindow(f"Ученика '{student_name}'\n(строка {str_ind}) нет в базе.\nУбедитесь, что данные введены корректно.\nФормат ввода:\n'Фамилия имя отчество класс' (без кавычек)")
-                return
+                return False
 
-        self.activity_selection_buttons[-1].setText(activity_name)
-        self.activity_selection_buttons[-1].clicked.connect(lambda state, x = activity_name : self.open_activity_inner_page(x))
+        return True
 
-        button_go_back_from_activity_selection = Button("Назад", self)
-        button_go_back_from_activity_selection.clicked.connect(self.open_main_page)
-        self.layout.addWidget(button_go_back_from_activity_selection, alignment=Qt.AlignmentFlag.AlignCenter)
-        self.activity_selection_buttons.append(button_go_back_from_activity_selection)
-        self.hide_all_buttons()
+    def create_new_activity(self):
+        self.error_win = None
 
-        self.create_activity_inner_page(activity_name)
-        self.create_activity_description_page(activity_name, activity_description)
+        activity_name = self.input_win.input_name.text()
+        activity_description = self.input_win.input_description.toPlainText()
+        activity_participants = self.input_win.input_participants.toPlainText()
 
-        with open("all_activities.txt", "a", encoding="utf-8") as all_activities:
-            all_activities.write(activity_name + '\n')
+        if (self.check_new_activity(activity_name, activity_participants)):
+            self.activity_selection_buttons[-1].setText(activity_name)
+            self.activity_selection_buttons[-1].clicked.connect(lambda state, x = activity_name : self.open_activity_inner_page(x))
 
-        with open(get_activity_list_name(activity_name), "w", encoding="utf-8") as participants_list:
-            for student_name in activity_participants.split('\n'):
-                if (len(student_name) == 0):
-                    continue
-                participants_list.write(student_name + '\n')
-                self.table_students.students_activities[self.table_students.student_id[student_name]].add(activity_name)
-            
-        with open(get_activity_description_name(activity_name), "w", encoding="utf-8") as description:
-            description.write(activity_description)
+            button_go_back_from_activity_selection = Button("Назад", self)
+            button_go_back_from_activity_selection.clicked.connect(self.open_main_page)
+            self.layout.addWidget(button_go_back_from_activity_selection, alignment=Qt.AlignmentFlag.AlignCenter)
+            self.activity_selection_buttons.append(button_go_back_from_activity_selection)
+            self.hide_all_buttons()
 
-        self.input_win.close()
-        self.open_activity_selection_page()
+            self.create_activity_inner_page(activity_name)
+            self.create_activity_description_page(activity_name, activity_description)
+
+            with open("all_activities.txt", "a", encoding="utf-8") as all_activities:
+                all_activities.write(activity_name + '\n')
+
+            with open(get_activity_list_name(activity_name), "w", encoding="utf-8") as participants_list:
+                for student_name in activity_participants.split('\n'):
+                    if (len(student_name) == 0):
+                        continue
+                    participants_list.write(student_name + '\n')
+                    self.table_students.students_activities[self.table_students.student_id[student_name]].add(activity_name)
+                
+            with open(get_activity_description_name(activity_name), "w", encoding="utf-8") as description:
+                description.write(activity_description)
+
+            self.input_win.close()
+            self.open_activity_selection_page()
 
     def return_from_activity_creation(self):
         if self.error_win:
@@ -422,51 +426,55 @@ class Window(QWidget):
 
         self.input_win.show()
 
-    def edit_activity(self, activity_name):
-        self.error_win = None
-
-        activity_description = self.input_win.input_description.toPlainText()
-        activity_participants = self.input_win.input_participants.toPlainText()
-
-        want_to_change_participants = False
+    def check_edited_activity(self, activity_participants):
         str_ind = 0
         student_line = {}
         for student_name in activity_participants.split('\n'):
             str_ind += 1
             if (len(student_name) == 0):
                 continue
-            want_to_change_participants = True
+            self.input_win.want_to_change_participants = True
 
             if (student_line.get(student_name) is None):
                 student_line[student_name] = str_ind
             else:
                 self.error_win = ErrorWindow(f"Ученик '{student_name}' встречается\nв двух строках, а именно в {student_line[student_name]}-ой и {str_ind}-ой.\nПожалуйста, проверьте, правильно ли Вы ввели данные.")
-                return
+                return False
             
             if (self.table_students.student_id.get(student_name) is None):
                 self.error_win = ErrorWindow(f"Ученика '{student_name}' (строка {str_ind}) нет в базе.\nУбедитесь, что данные введены корректно.\nФормат ввода:\n'Фамилия имя отчество класс' (без кавычек)")
-                return
-
-        if want_to_change_participants:
-            with open(get_activity_list_name(activity_name), "r", encoding="utf-8") as participants_list:
-                for student_name in participants_list:
-                    student_name = delete_end_of_string(student_name)
-                    self.table_students.students_activities[self.table_students.student_id[student_name]].remove(activity_name)
-
-            with open(get_activity_list_name(activity_name), "w", encoding="utf-8") as participants_list:
-                for student_name in activity_participants.split('\n'):
-                    if (len(student_name) == 0):
-                        continue
-                    participants_list.write(student_name + '\n')
-                    self.table_students.students_activities[self.table_students.student_id[student_name]].add(activity_name)
+                return False
         
-        if (len(activity_description)):
-            self.activity_description_page_widgets[activity_name][0].setText(activity_description)
-            with open(get_activity_description_name(activity_name), "w", encoding="utf-8") as description:
-                description.write(activity_description)
+        return True
 
-        self.input_win.close()
-        self.open_activity_inner_page(activity_name)
+    def edit_activity(self, activity_name):
+        self.error_win = None
+
+        activity_description = self.input_win.input_description.toPlainText()
+        activity_participants = self.input_win.input_participants.toPlainText()
+
+        self.input_win.want_to_change_participants = False
+        if (self.check_edited_activity(activity_participants)):
+            if self.input_win.want_to_change_participants:
+                with open(get_activity_list_name(activity_name), "r", encoding="utf-8") as participants_list:
+                    for student_name in participants_list:
+                        student_name = delete_end_of_string(student_name)
+                        self.table_students.students_activities[self.table_students.student_id[student_name]].remove(activity_name)
+
+                with open(get_activity_list_name(activity_name), "w", encoding="utf-8") as participants_list:
+                    for student_name in activity_participants.split('\n'):
+                        if (len(student_name) == 0):
+                            continue
+                        participants_list.write(student_name + '\n')
+                        self.table_students.students_activities[self.table_students.student_id[student_name]].add(activity_name)
+            
+            if (len(activity_description)):
+                self.activity_description_page_widgets[activity_name][0].setText(activity_description)
+                with open(get_activity_description_name(activity_name), "w", encoding="utf-8") as description:
+                    description.write(activity_description)
+
+            self.input_win.close()
+            self.open_activity_inner_page(activity_name)
 
     def open_delete_activity_window(self, activity_name):
         self.hide()
