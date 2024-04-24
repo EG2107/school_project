@@ -3,7 +3,7 @@ from PyQt6.QtWidgets import QWidget, QPushButton, QVBoxLayout, QLabel, QLineEdit
 from PyQt6.QtGui import QFont
 import os
 import sqlite3
-from functions import delete_end_of_string, get_activity_list_name, get_activity_description_name
+from functions import delete_end_of_string, get_activity_list_path, get_activity_description_path, get_all_classes_path, get_all_activities_path, get_guide_path
 from Button import Button
 from TableStudents import TableStudents
 from TableMerch import TableMerch
@@ -78,7 +78,7 @@ class Window(QWidget):
         
     def create_class_selection_buttons(self):
         self.class_selection_buttons = [[] for i in range(12)]
-        with open("all_classes.txt", "r", encoding="utf-8") as all_classes:
+        with open(get_all_classes_path(), "r", encoding="utf-8") as all_classes:
             for cur_class_name in all_classes:
                 cur_class_name = delete_end_of_string(cur_class_name)
                 grade = int(cur_class_name[0:1])
@@ -103,7 +103,7 @@ class Window(QWidget):
         button_create_activity.clicked.connect(self.open_create_new_activity_window)
         self.activity_selection_buttons.append(button_create_activity)
 
-        with open("all_activities.txt", "r", encoding="utf-8") as all_activities:
+        with open(get_all_activities_path(), "r", encoding="utf-8") as all_activities:
             for cur_activity_name in all_activities:
                 cur_activity_name = delete_end_of_string(cur_activity_name)
                 button = Button(cur_activity_name, self)
@@ -119,7 +119,7 @@ class Window(QWidget):
 
     def create_activity_inner_pages(self):
         self.activity_inner_page_widgets = {}
-        with open("all_activities.txt", "r", encoding="utf-8") as all_activities:
+        with open(get_all_activities_path(), "r", encoding="utf-8") as all_activities:
             for cur_activity_name in all_activities:
                 cur_activity_name = delete_end_of_string(cur_activity_name)
                 self.create_activity_inner_page(cur_activity_name)
@@ -156,10 +156,10 @@ class Window(QWidget):
 
     def create_activity_description_pages(self):
         self.activity_description_page_widgets = {}
-        with open("all_activities.txt", "r", encoding="utf-8") as all_activities:
+        with open(get_all_activities_path(), "r", encoding="utf-8") as all_activities:
             for cur_activity_name in all_activities:
                 cur_activity_name = delete_end_of_string(cur_activity_name)
-                with open(get_activity_description_name(cur_activity_name), "r", encoding="utf-8") as description:
+                with open(get_activity_description_path(cur_activity_name), "r", encoding="utf-8") as description:
                     self.create_activity_description_page(cur_activity_name, description.read())
 
     def create_activity_description_page(self, activity_name, activity_description):
@@ -239,7 +239,7 @@ class Window(QWidget):
         label_guide.setFont(QFont("Helvetica [Cronyx]", 18))
         self.guide_win.layout.addWidget(label_guide, alignment=Qt.AlignmentFlag.AlignCenter)
 
-        with open("guide.txt", "r", encoding="utf-8") as guide_text:
+        with open(get_guide_path(), "r", encoding="utf-8") as guide_text:
             label_text = QLabel(guide_text.read(), self)
             label_text.setFont(QFont("Helvetica [Cronyx]", 14))
             self.guide_win.layout.addWidget(label_text, alignment=Qt.AlignmentFlag.AlignCenter)
@@ -325,7 +325,7 @@ class Window(QWidget):
             self.error_win = ErrorWindow("Пожалуйста, введите название мероприятия.")
             return False
 
-        with open("all_activities.txt", "r", encoding="utf-8") as all_activities:
+        with open(get_all_activities_path(), "r", encoding="utf-8") as all_activities:
             for cur_activity_name in all_activities:
                 cur_activity_name = delete_end_of_string(cur_activity_name)
                 if (activity_name == cur_activity_name):
@@ -371,17 +371,17 @@ class Window(QWidget):
             self.create_activity_inner_page(activity_name)
             self.create_activity_description_page(activity_name, activity_description)
 
-            with open("all_activities.txt", "a", encoding="utf-8") as all_activities:
+            with open(get_all_activities_path(), "a", encoding="utf-8") as all_activities:
                 all_activities.write(activity_name + '\n')
 
-            with open(get_activity_list_name(activity_name), "w", encoding="utf-8") as participants_list:
+            with open(get_activity_list_path(activity_name), "w", encoding="utf-8") as participants_list:
                 for student_name in activity_participants.split('\n'):
                     if (len(student_name) == 0):
                         continue
                     participants_list.write(student_name + '\n')
                     self.table_students.students_activities[self.table_students.student_id[student_name]].add(activity_name)
                 
-            with open(get_activity_description_name(activity_name), "w", encoding="utf-8") as description:
+            with open(get_activity_description_path(activity_name), "w", encoding="utf-8") as description:
                 description.write(activity_description)
 
             self.input_win.close()
@@ -456,12 +456,12 @@ class Window(QWidget):
         self.input_win.want_to_change_participants = False
         if (self.check_edited_activity(activity_participants)):
             if self.input_win.want_to_change_participants:
-                with open(get_activity_list_name(activity_name), "r", encoding="utf-8") as participants_list:
+                with open(get_activity_list_path(activity_name), "r", encoding="utf-8") as participants_list:
                     for student_name in participants_list:
                         student_name = delete_end_of_string(student_name)
                         self.table_students.students_activities[self.table_students.student_id[student_name]].remove(activity_name)
 
-                with open(get_activity_list_name(activity_name), "w", encoding="utf-8") as participants_list:
+                with open(get_activity_list_path(activity_name), "w", encoding="utf-8") as participants_list:
                     for student_name in activity_participants.split('\n'):
                         if (len(student_name) == 0):
                             continue
@@ -470,7 +470,7 @@ class Window(QWidget):
             
             if (len(activity_description)):
                 self.activity_description_page_widgets[activity_name][0].setText(activity_description)
-                with open(get_activity_description_name(activity_name), "w", encoding="utf-8") as description:
+                with open(get_activity_description_path(activity_name), "w", encoding="utf-8") as description:
                     description.write(activity_description)
 
             self.input_win.close()
@@ -513,7 +513,7 @@ class Window(QWidget):
 
             connection = sqlite3.connect("student_database.db")
             cursor = connection.cursor()
-            with open(get_activity_list_name(activity_name), "r", encoding="utf-8") as file:
+            with open(get_activity_list_path(activity_name), "r", encoding="utf-8") as file:
                 for student_name in file:
                     student_name = delete_end_of_string(student_name)
 
@@ -530,17 +530,17 @@ class Window(QWidget):
             self.error_win = ErrorWindow("Значение должно являться неотрицательным числом.\nПроверьте корректность введённых данных.")
     
     def delete_activity_files(self, activity_name):
-        os.remove(get_activity_list_name(activity_name))
-        os.remove(get_activity_description_name(activity_name))
+        os.remove(get_activity_list_path(activity_name))
+        os.remove(get_activity_description_path(activity_name))
 
         new_activities = []
-        with open("all_activities.txt", "r", encoding="utf-8") as all_activities:
+        with open(get_all_activities_path(), "r", encoding="utf-8") as all_activities:
             for line in all_activities:
                 line = delete_end_of_string(line)
                 if (line != activity_name):
                     new_activities.append(line + '\n')
 
-        with open("all_activities.txt", "w", encoding="utf-8") as all_activities:
+        with open(get_all_activities_path(), "w", encoding="utf-8") as all_activities:
             all_activities.writelines(new_activities)
 
     def return_from_activity_edit_or_deletion(self, activity_name):
