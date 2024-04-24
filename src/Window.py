@@ -39,7 +39,7 @@ class Window(QWidget):
     def create_main_page_buttons(self):
         self.main_page_buttons = []
 
-        button_guide = Button("Руководство по использованию", self)
+        button_guide = Button("Руководство пользователя", self)
         button_guide.clicked.connect(self.open_guide)
         self.main_page_buttons.append(button_guide)
 
@@ -127,7 +127,7 @@ class Window(QWidget):
     def create_activity_inner_page(self, activity_name):
         self.activity_inner_page_widgets[activity_name] = []
 
-        label_activity_name = QLabel(activity_name)
+        label_activity_name = QLabel(activity_name, self)
         label_activity_name.setFont(QFont("Helvetica [Cronyx]", 18))
         self.activity_inner_page_widgets[activity_name].append(label_activity_name)
 
@@ -165,7 +165,7 @@ class Window(QWidget):
     def create_activity_description_page(self, activity_name, activity_description):
         self.activity_description_page_widgets[activity_name] = []
 
-        label_description = QLabel(activity_description)
+        label_description = QLabel(activity_description, self)
         label_description.setFont(QFont("Helvetica [Cronyx]", 12))
         self.layout.addWidget(label_description, alignment=Qt.AlignmentFlag.AlignCenter)
         self.activity_description_page_widgets[activity_name].append(label_description)
@@ -231,16 +231,18 @@ class Window(QWidget):
     def open_guide(self):
         self.hide()
 
-        self.guide_win = QWidget()
-        self.guide_win.setWindowTitle("School.Bonus")
-        self.guide_win.setGeometry(239, 239, 600, 600)
+        self.guide_win = InputWindow(self)
+        self.guide_win.setGeometry(250, 250, 600, 600)
+        self.guide_win.setStyleSheet("background-color: rgb(200, 200, 200)")
 
-        self.guide_win.layout = QVBoxLayout()
-        self.guide_win.setLayout(self.guide_win.layout)
+        label_guide = QLabel("Руководство пользователя", self)
+        label_guide.setFont(QFont("Helvetica [Cronyx]", 18))
+        self.guide_win.layout.addWidget(label_guide, alignment=Qt.AlignmentFlag.AlignCenter)
 
-        label = QLabel("Не забудь добавить сюда руководство", self)
-        label.setFont(QFont("Helvetica [Cronyx]", 18))
-        self.guide_win.layout.addWidget(label, alignment=Qt.AlignmentFlag.AlignCenter)
+        with open("guide.txt", "r", encoding="utf-8") as guide_text:
+            label_text = QLabel(guide_text.read(), self)
+            label_text.setFont(QFont("Helvetica [Cronyx]", 14))
+            self.guide_win.layout.addWidget(label_text, alignment=Qt.AlignmentFlag.AlignCenter)
 
         button_go_back = Button("Назад", self.guide_win)
         button_go_back.clicked.connect(self.go_back_from_guide)
@@ -256,7 +258,6 @@ class Window(QWidget):
         self.table_students.hide()
         self.table_students.setWindowTitle(f"Список учеников класса {class_name}")
         self.table_students.show()
-
         for i in range(self.table_students.table_model.columnCount()):
             self.table_students.showColumn(i)
         for i in range(self.table_students.table_model.rowCount()):
@@ -267,10 +268,6 @@ class Window(QWidget):
                 self.table_students.hideRow(i)
         self.table_students.hideColumn(0)
         self.table_students.hideColumn(2)
-
-        self.table_students.setSortingEnabled(True)
-        self.table_students.sortByColumn(1, Qt.SortOrder.AscendingOrder)
-        self.table_students.setSortingEnabled(False)
 
     def open_table_activity(self, activity_name):
         self.table_students.hide()
@@ -297,7 +294,7 @@ class Window(QWidget):
         self.input_win.input_name = QLineEdit()
         self.input_win.layout.addWidget(self.input_win.input_name, alignment=Qt.AlignmentFlag.AlignCenter)
 
-        label_description = QLabel("Введите описание мероприятия:", self)
+        label_description = QLabel("Введите описание мероприятия (не обязательно):", self)
         label_description.setFont(QFont("Helvetica [Cronyx]", 12))
         self.input_win.layout.addWidget(label_description, alignment=Qt.AlignmentFlag.AlignCenter)
 

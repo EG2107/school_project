@@ -1,6 +1,0 @@
-test_activity_1
-test_activity_2
-test_activity_3
-test_activity_4
-test_activity_5
-test_activity_6

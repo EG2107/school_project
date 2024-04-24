@@ -13,6 +13,8 @@ class TableMerch(QTableView):
         self.table_model = QSqlTableModel(None, self.db)
         self.table_model.setTable("merch")
         self.table_model.select()
+        while (self.table_model.canFetchMore()):
+            self.table_model.fetchMore()
 
         self.setModel(self.table_model)
         self.move(100, 100)

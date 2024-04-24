@@ -51,6 +51,5 @@ def create_merch_database():
             cursor.execute("INSERT INTO merch VALUES ((?), (?), 0)", (id, item_name, ))
             id += 1
 
-
     connection.commit()
     connection.close()

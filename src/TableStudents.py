@@ -14,6 +14,8 @@ class TableStudents(QTableView):
         self.table_model = QSqlTableModel(None, self.db)
         self.table_model.setTable("students")
         self.table_model.select()
+        while (self.table_model.canFetchMore()):
+            self.table_model.fetchMore()
 
         self.init_additional_data()
 
