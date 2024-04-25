@@ -2,7 +2,9 @@ from PyQt6.QtWidgets import QTableView
 from PyQt6.QtSql import QSqlDatabase, QSqlTableModel
 
 
+# класс таблицы мерча
 class TableMerch(QTableView):
+    # инициализация
     def __init__(self):
         super().__init__()
 

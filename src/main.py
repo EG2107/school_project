@@ -4,12 +4,11 @@ from functions import create_student_database, create_merch_database
 from Window import Window
 
 
-if __name__ == "__main__":
-    if not exists("student_database.db"):
-        create_student_database()
-    if not exists("merch_database.db"):
-        create_merch_database()
-    app = QApplication([])
-    win = Window()
-    win.show()
-    app.exec()
+if not exists("student_database.db"):
+    create_student_database()
+if not exists("merch_database.db"):
+    create_merch_database()
+app = QApplication([])
+win = Window()
+win.show()
+app.exec()

@@ -3,7 +3,9 @@ from PyQt6.QtSql import QSqlDatabase, QSqlTableModel
 from functions import delete_end_of_string, get_class_list_path, get_activity_list_path, get_all_classes_path, get_all_activities_path
 
 
+# класс таблицы учеников
 class TableStudents(QTableView):
+    # инициализация
     def __init__(self):
         super().__init__()
 
@@ -28,8 +30,9 @@ class TableStudents(QTableView):
         self.setColumnWidth(3, 85)
         self.hide()
 
+    # инициализация дополнительной информации
     def init_additional_data(self):
-        self.students_activities = []
+        self.student_activities = []
         self.student_id = dict()
 
         with open(get_all_classes_path(), "r", encoding="utf-8") as all_classes:
@@ -40,7 +43,7 @@ class TableStudents(QTableView):
                     for student_name in file:
                         student_name = delete_end_of_string(student_name)
                         self.student_id[student_name + " " + cur_class_name] = id
-                        self.students_activities.append(set())
+                        self.student_activities.append(set())
                         id += 1
 
         with open(get_all_activities_path(), "r", encoding="utf-8") as all_activities:
@@ -49,12 +52,14 @@ class TableStudents(QTableView):
                 with open(get_activity_list_path(cur_activity_name), "r", encoding="utf-8") as file:
                     for student_name in file:
                         student_name = delete_end_of_string(student_name)
-                        self.students_activities[self.student_id[student_name]].add(cur_activity_name)
+                        self.student_activities[self.student_id[student_name]].add(cur_activity_name)
 
+    # узнать значение в ячейке таблицы
     def get_value_in_cell(self, row, column):
         index = self.table_model.index(row, column)
         return self.table_model.data(index)
 
+    # прибавить значение в ячейке таблицы
     def add_value_in_cell(self, row, column, value):
         index = self.table_model.index(row, column)
         old_value = self.table_model.data(index)

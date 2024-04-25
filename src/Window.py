@@ -60,7 +60,7 @@ class Window(QWidget):
         self.main_page_buttons.append(button_merch)
         
         button_exit = Button("Закрыть", self)
-        button_exit.clicked.connect(self.close_window)
+        button_exit.clicked.connect(self.open_window_closing_menu)
         self.main_page_buttons.append(button_exit)
 
         for button in self.main_page_buttons:
@@ -294,7 +294,7 @@ class Window(QWidget):
             self.table_students.showColumn(i)
         for i in range(self.table_students.table_model.rowCount()):
             self.table_students.showRow(i)
-            if (not (activity_name in self.table_students.students_activities[i])):
+            if (not (activity_name in self.table_students.student_activities[i])):
                 self.table_students.hideRow(i)
         self.table_students.hideColumn(0)
 
@@ -399,7 +399,7 @@ class Window(QWidget):
                     if (len(student_name) == 0):
                         continue
                     participants_list.write(student_name + '\n')
-                    self.table_students.students_activities[self.table_students.student_id[student_name]].add(activity_name)
+                    self.table_students.student_activities[self.table_students.student_id[student_name]].add(activity_name)
                 
             with open(get_activity_description_path(activity_name), "w", encoding="utf-8") as description:
                 description.write(activity_description)
@@ -483,14 +483,14 @@ class Window(QWidget):
                 with open(get_activity_list_path(activity_name), "r", encoding="utf-8") as participants_list:
                     for student_name in participants_list:
                         student_name = delete_end_of_string(student_name)
-                        self.table_students.students_activities[self.table_students.student_id[student_name]].remove(activity_name)
+                        self.table_students.student_activities[self.table_students.student_id[student_name]].remove(activity_name)
 
                 with open(get_activity_list_path(activity_name), "w", encoding="utf-8") as participants_list:
                     for student_name in activity_participants.split('\n'):
                         if (len(student_name) == 0):
                             continue
                         participants_list.write(student_name + '\n')
-                        self.table_students.students_activities[self.table_students.student_id[student_name]].add(activity_name)
+                        self.table_students.student_activities[self.table_students.student_id[student_name]].add(activity_name)
             
             if (len(activity_description)):
                 self.activity_description_page_widgets[activity_name][0].setText(activity_description)
@@ -553,8 +553,9 @@ class Window(QWidget):
             self.open_activity_selection_page()
 
         else:
-            self.error_win = ErrorWindow("Значение должно являться неотрицательным числом.\nПроверьте корректность введённых данных.")
+            self.error_win = ErrorWindow("Значение должно являться целым неотрицательным числом.\nПроверьте корректность введённых данных.")
     
+    # удалить файлы мероприятия
     def delete_activity_files(self, activity_name):
         os.remove(get_activity_list_path(activity_name))
         os.remove(get_activity_description_path(activity_name))
@@ -569,6 +570,7 @@ class Window(QWidget):
         with open(get_all_activities_path(), "w", encoding="utf-8") as all_activities:
             all_activities.writelines(new_activities)
 
+    # вернуться со страницы изменения или удаления мероприятия
     def return_from_activity_edit_or_deletion(self, activity_name):
         if self.error_win:
             self.error_win.close()
@@ -576,6 +578,7 @@ class Window(QWidget):
         self.show()
         self.open_activity_inner_page(activity_name)
 
+    # переопределение метода closeEvent для возможности вернуться назад при закрытии
     def closeEvent(self, event):
         if self.want_to_close:
             super(Window, self).closeEvent(event)
@@ -583,9 +586,10 @@ class Window(QWidget):
             self.table_merch.close()
         else:
             event.ignore()
-            self.close_window()
+            self.open_window_closing_menu()
 
-    def close_window(self):
+    # открыть страницу подтверждения закрытия приложения
+    def open_window_closing_menu(self):
         self.hide()
         self.exit_win = QWidget()
         self.exit_win.setWindowTitle("School.Bonus")
@@ -604,10 +608,12 @@ class Window(QWidget):
 
         self.exit_win.show()
 
+    # вернуться назад со страницы закрытия приложения
     def return_from_exit_page(self):
         self.exit_win.close()
         self.show()
 
+    # закрыть приложение
     def exit(self):
         self.want_to_close = True
         self.exit_win.close()
