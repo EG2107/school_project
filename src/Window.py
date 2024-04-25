@@ -11,7 +11,9 @@ from InputWindow import InputWindow
 from ErrorWindow import ErrorWindow
 
 
+# класс основного окна приложения
 class Window(QWidget):
+    # инициализация
     def __init__(self):
         super().__init__()
         self.want_to_close = False
@@ -25,6 +27,7 @@ class Window(QWidget):
         self.create_widgets()
         self.open_main_page()
     
+    # вызов функций для создания всех виджетов
     def create_widgets(self):
         self.layout = QVBoxLayout()
         self.setLayout(self.layout)
@@ -36,6 +39,7 @@ class Window(QWidget):
         self.create_activity_description_pages()
         self.hide_all_buttons()
 
+    # создание кнопок главной страницы
     def create_main_page_buttons(self):
         self.main_page_buttons = []
 
@@ -62,6 +66,7 @@ class Window(QWidget):
         for button in self.main_page_buttons:
             self.layout.addWidget(button, alignment=Qt.AlignmentFlag.AlignCenter)
 
+    # создание кнопок страницы выбора параллели
     def crate_grade_selection_buttons(self):
         self.grade_selection_buttons = []
         for grade in range(5, 12):
@@ -75,7 +80,8 @@ class Window(QWidget):
 
         for button in self.grade_selection_buttons:
             self.layout.addWidget(button, alignment=Qt.AlignmentFlag.AlignCenter)
-        
+      
+    # создание кнопок страницы выбора класса
     def create_class_selection_buttons(self):
         self.class_selection_buttons = [[] for i in range(12)]
         with open(get_all_classes_path(), "r", encoding="utf-8") as all_classes:
@@ -96,6 +102,7 @@ class Window(QWidget):
             for button in self.class_selection_buttons[grade]:
                 self.layout.addWidget(button, alignment=Qt.AlignmentFlag.AlignCenter)
 
+    # создание кнопок страницы выбора мероприятия
     def create_activity_selection_buttons(self):
         self.activity_selection_buttons = []
 
@@ -117,6 +124,7 @@ class Window(QWidget):
         for button in self.activity_selection_buttons:
             self.layout.addWidget(button, alignment=Qt.AlignmentFlag.AlignCenter)
 
+    # создание кнопок страниц всех мероприятий
     def create_activity_inner_pages(self):
         self.activity_inner_page_widgets = {}
         with open(get_all_activities_path(), "r", encoding="utf-8") as all_activities:
@@ -124,6 +132,7 @@ class Window(QWidget):
                 cur_activity_name = delete_end_of_string(cur_activity_name)
                 self.create_activity_inner_page(cur_activity_name)
 
+    # создание кнопок страницы одного мероприятия
     def create_activity_inner_page(self, activity_name):
         self.activity_inner_page_widgets[activity_name] = []
 
@@ -154,6 +163,7 @@ class Window(QWidget):
         for widget in self.activity_inner_page_widgets[activity_name]:
             self.layout.addWidget(widget, alignment=Qt.AlignmentFlag.AlignCenter)
 
+    # создание страниц описаний всех мероприятий
     def create_activity_description_pages(self):
         self.activity_description_page_widgets = {}
         with open(get_all_activities_path(), "r", encoding="utf-8") as all_activities:
@@ -161,7 +171,8 @@ class Window(QWidget):
                 cur_activity_name = delete_end_of_string(cur_activity_name)
                 with open(get_activity_description_path(cur_activity_name), "r", encoding="utf-8") as description:
                     self.create_activity_description_page(cur_activity_name, description.read())
-
+    
+    # создание страницы описания одного мероприятия
     def create_activity_description_page(self, activity_name, activity_description):
         self.activity_description_page_widgets[activity_name] = []
 
@@ -174,7 +185,8 @@ class Window(QWidget):
         button_go_back_from_activity_description.clicked.connect(lambda state, x = activity_name : self.open_activity_inner_page(x))
         self.layout.addWidget(button_go_back_from_activity_description, alignment=Qt.AlignmentFlag.AlignCenter)
         self.activity_description_page_widgets[activity_name].append(button_go_back_from_activity_description)
-
+    
+    # спрятать все кнопки и дополнительные окна
     def hide_all_buttons(self):
         self.table_students.hide()
         self.table_merch.hide()
@@ -197,37 +209,44 @@ class Window(QWidget):
         for widgets in self.activity_description_page_widgets.values():
             for widget in widgets:
                 widget.hide()
-    
+
+    # открыть главную страницу
     def open_main_page(self):
         self.hide_all_buttons()
         for button in self.main_page_buttons:
             button.show()
 
+    # открыть страницу выбора параллели
     def open_grade_selection_page(self):
         self.hide_all_buttons()
         for button in self.grade_selection_buttons:
             button.show()
 
+    # открыть страницу выбора класса
     def open_class_selection_page(self, grade):
         self.hide_all_buttons()
         for button in self.class_selection_buttons[grade]:
             button.show()
 
+    # открыть страницу выбора мероприятия
     def open_activity_selection_page(self):
         self.hide_all_buttons()
         for button in self.activity_selection_buttons:
             button.show()
 
+    # открыть страницу мероприятия
     def open_activity_inner_page(self, activity_name):
         self.hide_all_buttons()
         for widget in self.activity_inner_page_widgets[activity_name]:
             widget.show()
 
+    # открыть описание мероприятия
     def open_activity_description(self, activity_name):
         self.hide_all_buttons()
         for widget in self.activity_description_page_widgets[activity_name]:
             widget.show()
 
+    # открыть руководство
     def open_guide(self):
         self.hide()
 
@@ -245,15 +264,12 @@ class Window(QWidget):
             self.guide_win.layout.addWidget(label_text, alignment=Qt.AlignmentFlag.AlignCenter)
 
         button_go_back = Button("Назад", self.guide_win)
-        button_go_back.clicked.connect(self.go_back_from_guide)
+        button_go_back.clicked.connect(self.guide_win.close)
         self.guide_win.layout.addWidget(button_go_back, alignment=Qt.AlignmentFlag.AlignCenter)
 
         self.guide_win.show()
-    
-    def go_back_from_guide(self):
-        self.guide_win.close()
-        self.show()
 
+    # открыть таблицу класса
     def open_table_class(self, class_name):
         self.table_students.hide()
         self.table_students.setWindowTitle(f"Список учеников класса {class_name}")
@@ -269,6 +285,7 @@ class Window(QWidget):
         self.table_students.hideColumn(0)
         self.table_students.hideColumn(2)
 
+    # открыть таблицу участников мероприятия
     def open_table_activity(self, activity_name):
         self.table_students.hide()
         self.table_students.setWindowTitle(f"Список участников мероприятия '{activity_name}'")
@@ -281,6 +298,7 @@ class Window(QWidget):
                 self.table_students.hideRow(i)
         self.table_students.hideColumn(0)
 
+    # открыть окно создания нового мероприятия
     def open_create_new_activity_window(self):
         self.hide()
 
@@ -320,6 +338,7 @@ class Window(QWidget):
 
         self.input_win.show()
 
+    # проверить данные созданного мероприятия на корректность
     def check_new_activity(self, activity_name, activity_participants):
         if len(activity_name) == 0:
             self.error_win = ErrorWindow("Пожалуйста, введите название мероприятия.")
@@ -351,6 +370,7 @@ class Window(QWidget):
 
         return True
 
+    # создать мероприятие
     def create_new_activity(self):
         self.error_win = None
 
@@ -387,6 +407,7 @@ class Window(QWidget):
             self.input_win.close()
             self.open_activity_selection_page()
 
+    # вернуться со страницы создания мероприятия
     def return_from_activity_creation(self):
         if self.error_win:
             self.error_win.close()
@@ -394,6 +415,7 @@ class Window(QWidget):
         self.show()
         self.open_activity_selection_page()
 
+    # открыть окно редактирования мероприятия
     def open_activity_edit_window(self, activity_name):
         self.hide()
 
@@ -426,6 +448,7 @@ class Window(QWidget):
 
         self.input_win.show()
 
+    # проверить данные отредактированного мероприятия на корректность
     def check_edited_activity(self, activity_participants):
         str_ind = 0
         student_line = {}
@@ -447,6 +470,7 @@ class Window(QWidget):
         
         return True
 
+    # отредактировать мероприятие
     def edit_activity(self, activity_name):
         self.error_win = None
 
@@ -476,6 +500,7 @@ class Window(QWidget):
             self.input_win.close()
             self.open_activity_inner_page(activity_name)
 
+    # открыть окно удаления мероприятия
     def open_delete_activity_window(self, activity_name):
         self.hide()
         self.error_win = None
@@ -500,6 +525,7 @@ class Window(QWidget):
 
         self.input_win.show()
 
+    # удалить мероприятие
     def delete_activity(self, activity_name):
         text = self.input_win.input.text()
         if text.isdigit():
@@ -554,6 +580,7 @@ class Window(QWidget):
         if self.want_to_close:
             super(Window, self).closeEvent(event)
             self.table_students.close()
+            self.table_merch.close()
         else:
             event.ignore()
             self.close_window()
