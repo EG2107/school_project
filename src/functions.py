@@ -2,16 +2,15 @@ import os
 import sqlite3
 
 
-# узнать текущий путь
-def get_cwd():
-    return os.getcwd()
-    #return os.getcwd()[0:-14]
-
 # удалить символ конца строки, если он есть
 def delete_end_of_string(string):
     if string[len(string) - 1] == '\n':
         string = string[0 : len(string) - 1]
     return string
+
+# узнать текущий путь
+def get_cwd():
+    return os.getcwd()
 
 # узнать путь до списка учеников данного класса
 def get_class_list_path(class_number):
@@ -72,8 +71,8 @@ def create_merch_database():
         (ID INTEGER, Название товара TEXT, Количество INTEGER)
     """)
 
-    id = 0
     with open(get_merch_list_path(), "r", encoding="utf-8") as merch_list:
+        id = 0
         for item_name in merch_list:
             item_name = delete_end_of_string(item_name)
             cursor.execute("INSERT INTO merch VALUES ((?), (?), 0)", (id, item_name, ))

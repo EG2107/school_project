@@ -4,9 +4,9 @@ from PyQt6.QtWidgets import QWidget, QVBoxLayout
 # класс окна ввода данных
 class InputWindow(QWidget):
     # инициализация
-    def __init__(self, parent_window):
+    def __init__(self, parent):
         super().__init__()
-        self.parent_window = parent_window
+        self.parent = parent
         self.setWindowTitle("School.Bonus")
 
         self.layout = QVBoxLayout()
@@ -15,6 +15,6 @@ class InputWindow(QWidget):
     # переопределение метода closeEvent для того, чтобы снова открыть основное окно после закрытия окна ввода
     def closeEvent(self, event):
         super(InputWindow, self).closeEvent(event)
-        self.parent_window.show()
-        if self.parent_window.error_win:
-            self.parent_window.error_win.close()
+        self.parent.show()
+        if self.parent.error_win:
+            self.parent.error_win.close()
