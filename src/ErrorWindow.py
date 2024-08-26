@@ -3,9 +3,7 @@ from PyQt6.QtWidgets import QWidget, QPushButton, QVBoxLayout, QLabel
 from PyQt6.QtGui import QFont
 
 
-# класс окна вывода ошибки
 class ErrorWindow(QWidget):
-    # инициализация
     def __init__(self, text):
         super().__init__()
         self.setWindowTitle("School.Bonus")

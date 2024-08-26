@@ -3,9 +3,7 @@ from PyQt6.QtSql import QSqlDatabase, QSqlTableModel
 from functions import delete_end_of_string, get_class_list_path, get_activity_list_path, get_all_classes_path, get_all_activities_path
 
 
-# класс таблицы учеников
 class TableStudents(QTableView):
-    # инициализация
     def __init__(self):
         super().__init__()
 
@@ -30,7 +28,6 @@ class TableStudents(QTableView):
         self.setColumnWidth(3, 85)
         self.hide()
 
-    # инициализация дополнительной информации
     def init_additional_data(self):
         self.student_activities = []
         self.student_id = dict()
@@ -54,12 +51,10 @@ class TableStudents(QTableView):
                         student_name = delete_end_of_string(student_name)
                         self.student_activities[self.student_id[student_name]].add(cur_activity_name)
 
-    # узнать значение в ячейке таблицы
     def get_value_in_cell(self, row, column):
         index = self.table_model.index(row, column)
         return self.table_model.data(index)
 
-    # прибавить значение в ячейке таблицы
     def add_value_in_cell(self, row, column, value):
         index = self.table_model.index(row, column)
         old_value = self.table_model.data(index)
