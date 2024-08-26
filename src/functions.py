@@ -36,7 +36,7 @@ def create_student_database():
     cursor = connection.cursor()
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS students
-        (ID INTEGER, ФИО TEXT, Класс TEXT, Бонусы INTEGER)
+        (ID INTEGER, ФИО TEXT, Класс TEXT, Количество_мероприятий INTEGER, Мероприятия TEXT)
     """)
 
     with open(get_all_classes_path(), "r", encoding="utf-8") as all_classes:
@@ -46,7 +46,7 @@ def create_student_database():
             with open(get_class_list_path(cur_class_name), "r", encoding="utf-8") as file:
                 for student_name in file:
                     student_name = delete_end_of_string(student_name)
-                    cursor.execute("INSERT INTO students VALUES ((?), (?), (?), 0)", (id, student_name, cur_class_name, ))
+                    cursor.execute("INSERT INTO students VALUES ((?), (?), (?), 0, '')", (id, student_name, cur_class_name, ))
                     id += 1
 
     connection.commit()
@@ -69,3 +69,9 @@ def create_merch_database():
 
     connection.commit()
     connection.close()
+
+def set_to_str(st):
+    if (len(st) == 0):
+        return None
+    s = str(st)
+    return s[1:-1]

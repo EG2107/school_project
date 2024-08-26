@@ -3,7 +3,7 @@ from PyQt6.QtWidgets import QWidget, QPushButton, QVBoxLayout, QLabel, QLineEdit
 from PyQt6.QtGui import QFont
 import os
 import sqlite3
-from functions import delete_end_of_string, get_activity_list_path, get_activity_description_path, get_all_classes_path, get_all_activities_path, get_guide_path
+from functions import delete_end_of_string, get_activity_list_path, get_activity_description_path, get_all_classes_path, get_all_activities_path, get_guide_path, set_to_str
 from Button import Button
 from TableStudents import TableStudents
 from TableMerch import TableMerch
@@ -143,10 +143,6 @@ class Window(QWidget):
         button_description.clicked.connect(lambda state, x = activity_name : self.open_activity_description(x))
         self.activity_inner_page_widgets[activity_name].append(button_description)
 
-        button_done = Button("Отметить проведение", self)
-        button_done.clicked.connect(lambda state, x = activity_name : self.open_delete_activity_window(x))
-        self.activity_inner_page_widgets[activity_name].append(button_done)
-
         button_go_back_from_activity_inner_page = Button("Назад", self)
         button_go_back_from_activity_inner_page.clicked.connect(self.open_activity_selection_page)
         self.activity_inner_page_widgets[activity_name].append(button_go_back_from_activity_inner_page)
@@ -256,12 +252,17 @@ class Window(QWidget):
         self.table_students.show()
         for i in range(self.table_students.table_model.columnCount()):
             self.table_students.showColumn(i)
+
         for i in range(self.table_students.table_model.rowCount()):
             self.table_students.showRow(i)
             index = self.table_students.table_model.index(i, 2)
             cur_class_name = self.table_students.table_model.data(index)
             if (cur_class_name != class_name):
                 self.table_students.hideRow(i)
+            else:
+                self.table_students.set_value_in_cell(i, 3, len(self.table_students.student_activities[i]))
+                self.table_students.set_value_in_cell(i, 4, set_to_str(self.table_students.student_activities[i]))
+
         self.table_students.hideColumn(0)
         self.table_students.hideColumn(2)
 
@@ -275,6 +276,9 @@ class Window(QWidget):
             self.table_students.showRow(i)
             if (not (activity_name in self.table_students.student_activities[i])):
                 self.table_students.hideRow(i)
+            else:
+                self.table_students.set_value_in_cell(i, 3, len(self.table_students.student_activities[i]))
+                self.table_students.set_value_in_cell(i, 4, set_to_str(self.table_students.student_activities[i]))
         self.table_students.hideColumn(0)
 
     def open_create_new_activity_window(self):
@@ -471,73 +475,6 @@ class Window(QWidget):
 
             self.input_win.close()
             self.open_activity_inner_page(activity_name)
-
-    def open_delete_activity_window(self, activity_name):
-        self.hide()
-        self.error_win = None
-
-        self.input_win = InputWindow(self)
-        self.input_win.setGeometry(400, 300, 400, 300)
-
-        label = QLabel(f"Введите, сколько бонусов необходимо прибавить\nучастникам мероприятия '{activity_name}':", self)
-        label.setFont(QFont("Helvetica [Cronyx]", 12))
-        self.input_win.layout.addWidget(label, alignment=Qt.AlignmentFlag.AlignCenter)
-
-        self.input_win.input = QLineEdit()
-        self.input_win.layout.addWidget(self.input_win.input, alignment=Qt.AlignmentFlag.AlignCenter)
-
-        button_go_back = QPushButton("Отмена")
-        button_go_back.clicked.connect(lambda state, x = activity_name : self.return_from_activity_edit_or_deletion(x))
-        self.input_win.layout.addWidget(button_go_back)
-
-        button_commit = QPushButton("Подтвердить")
-        button_commit.clicked.connect(lambda state, x = activity_name : self.delete_activity(x))
-        self.input_win.layout.addWidget(button_commit)
-
-        self.input_win.show()
-
-    def delete_activity(self, activity_name):
-        text = self.input_win.input.text()
-        if text.isdigit():
-            amount_to_add = int(text)
-            self.input_win.close()
-
-            for i in range(len(self.activity_selection_buttons)):
-                if (self.activity_selection_buttons[i].text() == activity_name):
-                    self.activity_selection_buttons.remove(self.activity_selection_buttons[i])
-                    break
-
-            connection = sqlite3.connect("student_database.db")
-            cursor = connection.cursor()
-            with open(get_activity_list_path(activity_name), "r", encoding="utf-8") as file:
-                for student_name in file:
-                    student_name = delete_end_of_string(student_name)
-
-                    cursor.execute("UPDATE students SET Бонусы = Бонусы + ? WHERE ID = ?", (amount_to_add, self.table_students.student_id[student_name]))
-                    connection.commit()
-                    self.table_students.add_value_in_cell(self.table_students.student_id[student_name], 3, amount_to_add)
-
-            connection.close()
-            self.delete_activity_files(activity_name)
-            self.show()
-            self.open_activity_selection_page()
-
-        else:
-            self.error_win = ErrorWindow("Значение должно являться целым неотрицательным числом.\nПроверьте корректность введённых данных.")
-
-    def delete_activity_files(self, activity_name):
-        os.remove(get_activity_list_path(activity_name))
-        os.remove(get_activity_description_path(activity_name))
-
-        new_activities = []
-        with open(get_all_activities_path(), "r", encoding="utf-8") as all_activities:
-            for line in all_activities:
-                line = delete_end_of_string(line)
-                if (line != activity_name):
-                    new_activities.append(line + '\n')
-
-        with open(get_all_activities_path(), "w", encoding="utf-8") as all_activities:
-            all_activities.writelines(new_activities)
 
     def return_from_activity_edit_or_deletion(self, activity_name):
         if self.error_win:

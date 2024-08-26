@@ -25,7 +25,8 @@ class TableStudents(QTableView):
         self.setColumnWidth(0, 15)
         self.setColumnWidth(1, 300)
         self.setColumnWidth(2, 70)
-        self.setColumnWidth(3, 85)
+        self.setColumnWidth(3, 150)
+        self.setColumnWidth(4, 800)
         self.hide()
 
     def init_additional_data(self):
@@ -59,4 +60,9 @@ class TableStudents(QTableView):
         index = self.table_model.index(row, column)
         old_value = self.table_model.data(index)
         self.table_model.setData(index, old_value + value)
+        self.table_model.submit()
+    
+    def set_value_in_cell(self, row, column, value):
+        index = self.table_model.index(row, column)
+        self.table_model.setData(index, value)
         self.table_model.submit()
