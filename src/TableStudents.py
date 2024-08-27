@@ -1,6 +1,7 @@
 from PyQt6.QtWidgets import QTableView
 from PyQt6.QtSql import QSqlDatabase, QSqlTableModel
-from functions import delete_end_of_string, get_class_list_path, get_activity_list_path, get_all_classes_path, get_all_activities_path
+from functions import delete_end_of_string, get_class_list_path, get_activity_list_path, get_all_classes_path, get_all_activities_path, check_student_name
+import pandas as pd
 
 
 class TableStudents(QTableView):
@@ -37,9 +38,9 @@ class TableStudents(QTableView):
             id = 0
             for cur_class_name in all_classes:
                 cur_class_name = delete_end_of_string(cur_class_name)
-                with open(get_class_list_path(cur_class_name), "r", encoding="utf-8") as file:
-                    for student_name in file:
-                        student_name = delete_end_of_string(student_name)
+                df = pd.read_excel(get_class_list_path(cur_class_name))
+                for student_name in df['Unnamed: 2']:
+                    if (check_student_name(student_name)):
                         self.student_id[student_name + " " + cur_class_name] = id
                         self.student_activities.append(set())
                         id += 1

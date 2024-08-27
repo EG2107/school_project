@@ -1,5 +1,6 @@
 import os
 import sqlite3
+import pandas as pd
 
 
 def delete_end_of_string(string):
@@ -11,7 +12,7 @@ def get_cwd():
     return os.getcwd()
 
 def get_class_list_path(class_number):
-    return get_cwd() + "\\student_lists\\" + class_number + ".txt"
+    return get_cwd() + "\\student_lists\\" + class_number + " список.xlsx"
 
 def get_activity_list_path(activity_name):
     return get_cwd() + "\\activity_lists\\" + activity_name + ".txt"
@@ -31,6 +32,9 @@ def get_merch_list_path():
 def get_guide_path():
     return get_cwd() + "\\guide.txt"
 
+def check_student_name(student_name):
+    return (type(student_name) == str) and (student_name != "ФИО учащегося")
+
 def create_student_database():
     connection = sqlite3.connect("student_database.db")
     cursor = connection.cursor()
@@ -43,9 +47,9 @@ def create_student_database():
         id = 0
         for cur_class_name in all_classes:
             cur_class_name = delete_end_of_string(cur_class_name)
-            with open(get_class_list_path(cur_class_name), "r", encoding="utf-8") as file:
-                for student_name in file:
-                    student_name = delete_end_of_string(student_name)
+            df = pd.read_excel(get_class_list_path(cur_class_name))
+            for student_name in df['Unnamed: 2']:
+                if (check_student_name(student_name)):
                     cursor.execute("INSERT INTO students VALUES ((?), (?), (?), 0, '')", (id, student_name, cur_class_name, ))
                     id += 1
 
