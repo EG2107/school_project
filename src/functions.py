@@ -51,25 +51,7 @@ def create_student_database():
 
     connection.commit()
     connection.close()
-
-def create_merch_database():
-    connection = sqlite3.connect("merch_database.db")
-    cursor = connection.cursor()
-    cursor.execute("""
-        CREATE TABLE IF NOT EXISTS merch
-        (ID INTEGER, Название товара TEXT, Количество INTEGER)
-    """)
-
-    with open(get_merch_list_path(), "r", encoding="utf-8") as merch_list:
-        id = 0
-        for item_name in merch_list:
-            item_name = delete_end_of_string(item_name)
-            cursor.execute("INSERT INTO merch VALUES ((?), (?), 0)", (id, item_name, ))
-            id += 1
-
-    connection.commit()
-    connection.close()
-
+    
 def set_to_str(st):
     if (len(st) == 0):
         return None

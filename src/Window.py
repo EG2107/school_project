@@ -1,12 +1,10 @@
 from PyQt6.QtCore import Qt
-from PyQt6.QtWidgets import QWidget, QPushButton, QVBoxLayout, QLabel, QLineEdit, QTextEdit
+from PyQt6.QtWidgets import QMainWindow, QWidget, QPushButton, QVBoxLayout, QLabel, QLineEdit, QTextEdit, QScrollArea
 from PyQt6.QtGui import QFont
 import os
-import sqlite3
 from functions import delete_end_of_string, get_activity_list_path, get_activity_description_path, get_all_classes_path, get_all_activities_path, get_guide_path, set_to_str
 from Button import Button
 from TableStudents import TableStudents
-from TableMerch import TableMerch
 from InputWindow import InputWindow
 from ErrorWindow import ErrorWindow
 
@@ -18,7 +16,6 @@ class Window(QWidget):
         self.input_win = None
         self.error_win = None
         self.table_students = TableStudents()
-        self.table_merch = TableMerch()
         self.setWindowTitle("School.Bonus")
         self.setGeometry(100, 100, 1000, 750)
         self.setStyleSheet("background-color: rgb(172, 172, 172)")
@@ -51,10 +48,6 @@ class Window(QWidget):
         button_activity_lists.clicked.connect(self.open_activity_selection_page)
         self.main_page_buttons.append(button_activity_lists)
         
-        button_merch = Button("Мерч", self)
-        button_merch.clicked.connect(self.table_merch.show)
-        self.main_page_buttons.append(button_merch)
-        
         button_exit = Button("Закрыть", self)
         button_exit.clicked.connect(self.open_window_closing_menu)
         self.main_page_buttons.append(button_exit)
@@ -64,6 +57,10 @@ class Window(QWidget):
 
     def crate_grade_selection_buttons(self):
         self.grade_selection_buttons = []
+        button_all = Button("Все ученики", self)
+        button_all.clicked.connect(lambda state, x = 0 : self.open_class_selection_page(x))
+        self.grade_selection_buttons.append(button_all)
+
         for grade in range(5, 12):
             button = Button(str(grade), self)
             button.clicked.connect(lambda state, x = grade : self.open_class_selection_page(x))
@@ -177,7 +174,6 @@ class Window(QWidget):
 
     def hide_all_buttons(self):
         self.table_students.hide()
-        self.table_merch.hide()
         if self.error_win:
             self.error_win.close()
         if self.input_win:
@@ -209,6 +205,9 @@ class Window(QWidget):
             button.show()
 
     def open_class_selection_page(self, grade):
+        if (grade == 0):
+            self.open_table_all_students()
+            return
         self.hide_all_buttons()
         for button in self.class_selection_buttons[grade]:
             button.show()
@@ -249,6 +248,20 @@ class Window(QWidget):
         self.guide_win.layout.addWidget(button_go_back, alignment=Qt.AlignmentFlag.AlignCenter)
 
         self.guide_win.show()
+
+    def open_table_all_students(self):
+        self.table_students.hide()
+        self.table_students.setWindowTitle("Все ученики")
+        self.table_students.show()
+
+        for i in range(self.table_students.table_model.columnCount()):
+            self.table_students.showColumn(i)
+        for i in range(self.table_students.table_model.rowCount()):
+            self.table_students.showRow(i)
+            self.table_students.set_value_in_cell(i, 3, len(self.table_students.student_activities[i]))
+            self.table_students.set_value_in_cell(i, 4, set_to_str(self.table_students.student_activities[i]))
+
+        self.table_students.hideColumn(0)
 
     def open_table_class(self, class_name):
         self.table_students.hide()
@@ -511,7 +524,7 @@ class Window(QWidget):
         with open(get_activity_list_path(activity_name), "r", encoding="utf-8") as file:
             for student_name in file:
                 student_name = delete_end_of_string(student_name)
-                self.table_students.student_activities[self.table_students.student_id[student_name]].pop(activity_name)
+                self.table_students.student_activities[self.table_students.student_id[student_name]].discard(activity_name)
 
         self.delete_activity_files(activity_name)
         self.show()
@@ -542,7 +555,6 @@ class Window(QWidget):
         if self.want_to_close:
             super(Window, self).closeEvent(event)
             self.table_students.close()
-            self.table_merch.close()
         else:
             event.ignore()
             self.open_window_closing_menu()
