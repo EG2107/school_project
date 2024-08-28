@@ -29,9 +29,6 @@ def get_all_activities_path():
 def get_merch_list_path():
     return get_cwd() + "\\merch_list.txt"
 
-def get_guide_path():
-    return get_cwd() + "\\guide.txt"
-
 def check_student_name(student_name):
     return (type(student_name) == str) and (student_name != "ФИО учащегося")
 

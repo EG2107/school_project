@@ -1,8 +1,8 @@
 from PyQt6.QtCore import Qt
-from PyQt6.QtWidgets import QMainWindow, QWidget, QPushButton, QVBoxLayout, QLabel, QLineEdit, QTextEdit, QScrollArea
+from PyQt6.QtWidgets import QWidget, QPushButton, QVBoxLayout, QLabel, QLineEdit, QTextEdit
 from PyQt6.QtGui import QFont
 import os
-from functions import delete_end_of_string, get_activity_list_path, get_activity_description_path, get_all_classes_path, get_all_activities_path, get_guide_path, set_to_str
+from functions import delete_end_of_string, get_activity_list_path, get_activity_description_path, get_all_classes_path, get_all_activities_path, set_to_str
 from Button import Button
 from TableStudents import TableStudents
 from InputWindow import InputWindow
@@ -12,13 +12,9 @@ from ErrorWindow import ErrorWindow
 class Window(QWidget):
     def __init__(self):
         super().__init__()
-        self.want_to_close = False
         self.input_win = None
         self.error_win = None
         self.table_students = TableStudents()
-        self.setWindowTitle("School.Bonus")
-        self.setGeometry(100, 100, 1000, 750)
-        self.setStyleSheet("background-color: rgb(172, 172, 172)")
         self.create_widgets()
         self.open_main_page()
     
@@ -36,10 +32,6 @@ class Window(QWidget):
     def create_main_page_buttons(self):
         self.main_page_buttons = []
 
-        button_guide = Button("Руководство пользователя", self)
-        button_guide.clicked.connect(self.open_guide)
-        self.main_page_buttons.append(button_guide)
-
         button_student_lists = Button("Список классов", self)
         button_student_lists.clicked.connect(self.open_grade_selection_page)
         self.main_page_buttons.append(button_student_lists)
@@ -47,10 +39,6 @@ class Window(QWidget):
         button_activity_lists = Button("Мероприятия", self)
         button_activity_lists.clicked.connect(self.open_activity_selection_page)
         self.main_page_buttons.append(button_activity_lists)
-        
-        button_exit = Button("Закрыть", self)
-        button_exit.clicked.connect(self.open_window_closing_menu)
-        self.main_page_buttons.append(button_exit)
 
         for button in self.main_page_buttons:
             self.layout.addWidget(button, alignment=Qt.AlignmentFlag.AlignCenter)
@@ -226,28 +214,6 @@ class Window(QWidget):
         self.hide_all_buttons()
         for widget in self.activity_description_page_widgets[activity_name]:
             widget.show()
-
-    def open_guide(self):
-        self.hide()
-
-        self.guide_win = InputWindow(self)
-        self.guide_win.setGeometry(250, 250, 600, 600)
-        self.guide_win.setStyleSheet("background-color: rgb(200, 200, 200)")
-
-        label_guide = QLabel("Руководство пользователя", self)
-        label_guide.setFont(QFont("Helvetica [Cronyx]", 18))
-        self.guide_win.layout.addWidget(label_guide, alignment=Qt.AlignmentFlag.AlignCenter)
-
-        with open(get_guide_path(), "r", encoding="utf-8") as guide_text:
-            label_text = QLabel(guide_text.read(), self)
-            label_text.setFont(QFont("Helvetica [Cronyx]", 14))
-            self.guide_win.layout.addWidget(label_text, alignment=Qt.AlignmentFlag.AlignCenter)
-
-        button_go_back = Button("Назад", self.guide_win)
-        button_go_back.clicked.connect(self.guide_win.close)
-        self.guide_win.layout.addWidget(button_go_back, alignment=Qt.AlignmentFlag.AlignCenter)
-
-        self.guide_win.show()
 
     def open_table_all_students(self):
         self.table_students.hide()
@@ -550,39 +516,3 @@ class Window(QWidget):
         self.input_win.close()
         self.show()
         self.open_activity_inner_page(activity_name)
-
-    def closeEvent(self, event):
-        if self.want_to_close:
-            super(Window, self).closeEvent(event)
-            self.table_students.close()
-        else:
-            event.ignore()
-            self.open_window_closing_menu()
-
-    def open_window_closing_menu(self):
-        self.hide()
-        self.exit_win = QWidget()
-        self.exit_win.setWindowTitle("School.Bonus")
-        self.exit_win.setGeometry(500, 400, 250, 130)
-
-        self.exit_win.layout = QVBoxLayout()
-        self.exit_win.setLayout(self.exit_win.layout)
-
-        button_go_back = QPushButton("Вернуться назад")
-        button_go_back.clicked.connect(self.return_from_exit_page)
-        self.exit_win.layout.addWidget(button_go_back)
-
-        button_exit = QPushButton("Закрыть приложение")
-        button_exit.clicked.connect(self.exit)
-        self.exit_win.layout.addWidget(button_exit)
-
-        self.exit_win.show()
-
-    def return_from_exit_page(self):
-        self.exit_win.close()
-        self.show()
-
-    def exit(self):
-        self.want_to_close = True
-        self.exit_win.close()
-        self.close()

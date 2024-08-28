@@ -26,7 +26,7 @@ class TableStudents(QTableView):
         self.setColumnWidth(0, 15)
         self.setColumnWidth(1, 300)
         self.setColumnWidth(2, 70)
-        self.setColumnWidth(3, 150)
+        self.setColumnWidth(3, 160)
         self.setColumnWidth(4, 800)
         self.hide()
 
