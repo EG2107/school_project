@@ -1,7 +1,7 @@
 from PyQt6.QtWidgets import QTableView
 from PyQt6.QtSql import QSqlDatabase, QSqlTableModel
-from functions import delete_end_of_string, get_class_list_path, get_activity_list_path, get_all_classes_path, get_all_activities_path, check_student_name
-import pandas as pd
+from functions import delete_end_of_string, get_class_list_path, get_activity_list_path, get_all_classes_path, get_all_activities_path, get_db_path, check_student_name
+import openpyxl
 
 
 class TableStudents(QTableView):
@@ -9,7 +9,7 @@ class TableStudents(QTableView):
         super().__init__()
 
         self.db = QSqlDatabase.addDatabase("QSQLITE")
-        self.db.setDatabaseName("student_database.db")
+        self.db.setDatabaseName(get_db_path())
         self.db.open()
 
         self.table_model = QSqlTableModel(None, self.db)
@@ -38,8 +38,11 @@ class TableStudents(QTableView):
             id = 0
             for cur_class_name in all_classes:
                 cur_class_name = delete_end_of_string(cur_class_name)
-                df = pd.read_excel(get_class_list_path(cur_class_name))
-                for student_name in df['Unnamed: 2']:
+                wb_obj = openpyxl.load_workbook(get_class_list_path(cur_class_name))
+                sheet_obj = wb_obj.active
+                for i in range(1, sheet_obj.max_row + 1):
+                    cell_obj = sheet_obj.cell(row = i, column = 3)
+                    student_name = cell_obj.value
                     if (check_student_name(student_name)):
                         self.student_id[student_name + " " + cur_class_name] = id
                         self.student_activities.append(set())
