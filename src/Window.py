@@ -2,7 +2,9 @@ from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import QWidget, QPushButton, QVBoxLayout, QLabel, QLineEdit, QTextEdit
 from PyQt6.QtGui import QFont
 import os
-from functions import delete_end_of_string, get_activity_list_path, get_activity_description_path, get_all_classes_path, get_all_activities_path, set_to_str
+import sqlite3
+from openpyxl import Workbook
+from functions import delete_end_of_string, get_activity_list_path, get_activity_description_path, get_all_classes_path, get_all_activities_path, get_db_path, set_to_str
 from Button import Button
 from TableStudents import TableStudents
 from InputWindow import InputWindow
@@ -39,6 +41,10 @@ class Window(QWidget):
         button_activity_lists = Button("Мероприятия", self)
         button_activity_lists.clicked.connect(self.open_activity_selection_page)
         self.main_page_buttons.append(button_activity_lists)
+        
+        button_export = Button("Экспортировать таблицу", self)
+        button_export.clicked.connect(self.export_table)
+        self.main_page_buttons.append(button_export)
 
         for button in self.main_page_buttons:
             self.layout.addWidget(button, alignment=Qt.AlignmentFlag.AlignCenter)
@@ -383,7 +389,7 @@ class Window(QWidget):
         self.hide()
 
         self.input_win = InputWindow(self)
-        self.input_win.setGeometry(400, 250, 450, 600)
+        self.input_win.setGeometry(400, 150, 450, 800)
 
         label_description = QLabel("Введите описание мероприятия:\n(Если не хотите менять описание мероприятия,\nоставьте поле пустым.)", self)
         label_description.setFont(QFont("Helvetica [Cronyx]", 12))
@@ -393,13 +399,21 @@ class Window(QWidget):
         self.input_win.input_description.setMinimumWidth(380)
         self.input_win.layout.addWidget(self.input_win.input_description, alignment=Qt.AlignmentFlag.AlignCenter)
 
-        label_participants = QLabel("Введите ФИО и класс участников мероприятия:\n(Если не хотите менять участников мероприятия,\nоставьте поле пустым.)", self)
-        label_participants.setFont(QFont("Helvetica [Cronyx]", 12))
-        self.input_win.layout.addWidget(label_participants, alignment=Qt.AlignmentFlag.AlignCenter)
+        label_add_participants = QLabel("Введите ФИО и класс участников мероприятия,\nкоторых Вы хотите добавить:", self)
+        label_add_participants.setFont(QFont("Helvetica [Cronyx]", 12))
+        self.input_win.layout.addWidget(label_add_participants, alignment=Qt.AlignmentFlag.AlignCenter)
 
-        self.input_win.input_participants = QTextEdit()
-        self.input_win.input_participants.setMinimumWidth(380)
-        self.input_win.layout.addWidget(self.input_win.input_participants, alignment=Qt.AlignmentFlag.AlignCenter)
+        self.input_win.input_add_participants = QTextEdit()
+        self.input_win.input_add_participants.setMinimumWidth(380)
+        self.input_win.layout.addWidget(self.input_win.input_add_participants, alignment=Qt.AlignmentFlag.AlignCenter)
+
+        label_del_participants = QLabel("Введите ФИО и класс участников мероприятия,\nкоторых Вы хотите удалить:", self)
+        label_del_participants.setFont(QFont("Helvetica [Cronyx]", 12))
+        self.input_win.layout.addWidget(label_del_participants, alignment=Qt.AlignmentFlag.AlignCenter)
+
+        self.input_win.input_del_participants = QTextEdit()
+        self.input_win.input_del_participants.setMinimumWidth(380)
+        self.input_win.layout.addWidget(self.input_win.input_del_participants, alignment=Qt.AlignmentFlag.AlignCenter)
 
         button_go_back = QPushButton("Отмена")
         button_go_back.clicked.connect(lambda state, x = activity_name : self.return_from_activity_edit_or_deletion(x))
@@ -418,7 +432,6 @@ class Window(QWidget):
             str_ind += 1
             if (len(student_name) == 0):
                 continue
-            self.input_win.want_to_change_participants = True
 
             if (student_line.get(student_name) is None):
                 student_line[student_name] = str_ind
@@ -436,22 +449,35 @@ class Window(QWidget):
         self.error_win = None
 
         activity_description = self.input_win.input_description.toPlainText()
-        activity_participants = self.input_win.input_participants.toPlainText()
+        activity_add_participants = self.input_win.input_add_participants.toPlainText()
+        activity_del_participants = self.input_win.input_del_participants.toPlainText()
 
-        self.input_win.want_to_change_participants = False
-        if (self.check_edited_activity(activity_participants)):
-            if self.input_win.want_to_change_participants:
-                with open(get_activity_list_path(activity_name), "r", encoding="utf-8") as participants_list:
-                    for student_name in participants_list:
-                        student_name = delete_end_of_string(student_name)
-                        self.table_students.student_activities[self.table_students.student_id[student_name]].remove(activity_name)
+        if (self.check_edited_activity(activity_add_participants) and self.check_edited_activity(activity_del_participants)):    
+            activity_add_participants = activity_add_participants.split('\n')
+            activity_del_participants = activity_del_participants.split('\n')
 
-                with open(get_activity_list_path(activity_name), "w", encoding="utf-8") as participants_list:
-                    for student_name in activity_participants.split('\n'):
-                        if (len(student_name) == 0):
-                            continue
-                        participants_list.write(student_name + '\n')
-                        self.table_students.student_activities[self.table_students.student_id[student_name]].add(activity_name)
+            new_participants = []
+            with open(get_activity_list_path(activity_name), "r", encoding="utf-8") as participants_list:
+                for line in participants_list:
+                    line = delete_end_of_string(line)
+                    if not (line in activity_del_participants):
+                        new_participants.append(line + '\n')
+
+                for student_name in activity_add_participants:
+                    if (len(student_name) == 0 
+                        or activity_name in self.table_students.student_activities[self.table_students.student_id[student_name]]
+                        or student_name in activity_del_participants):
+                        continue
+                    new_participants.append(student_name + '\n')
+                    self.table_students.student_activities[self.table_students.student_id[student_name]].add(activity_name)
+
+                for student_name in activity_del_participants:
+                    if (len(student_name) == 0):
+                        continue
+                    self.table_students.student_activities[self.table_students.student_id[student_name]].discard(activity_name)
+
+            with open(get_activity_list_path(activity_name), "w", encoding="utf-8") as participants_list:
+                participants_list.writelines(new_participants)
             
             if (len(activity_description)):
                 self.activity_description_page_widgets[activity_name][0].setText(activity_description)
@@ -516,3 +542,29 @@ class Window(QWidget):
         self.input_win.close()
         self.show()
         self.open_activity_inner_page(activity_name)
+    
+    def export_table(self):
+        for i in range(self.table_students.table_model.rowCount()):
+            self.table_students.set_value_in_cell(i, 3, len(self.table_students.student_activities[i]))
+            self.table_students.set_value_in_cell(i, 4, set_to_str(self.table_students.student_activities[i]))
+        
+        connection = sqlite3.connect(get_db_path())
+        wb = Workbook()
+        ws = wb.active
+
+        query = "SELECT * FROM students WHERE Количество_мероприятий > 0"
+        cursor = connection.cursor()
+        cursor.execute(query)
+        data = cursor.fetchall()
+
+        ws.cell(row=1, column=1, value="ФИО")
+        ws.cell(row=1, column=2, value="Класс")
+        ws.cell(row=1, column=3, value="Количество мероприятий")
+        ws.cell(row=1, column=4, value="Мероприятия")
+        for row_index, row_data in enumerate(data, start=1):
+            for col_index, cell_data in enumerate(row_data, start=1):
+                if (col_index > 1):
+                    ws.cell(row=row_index + 1, column=col_index - 1, value=cell_data)
+
+        wb.save('Сводная таблица.xlsx')
+        connection.close()
