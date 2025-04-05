@@ -4,7 +4,7 @@ from PyQt6.QtGui import QFont
 import os
 import sqlite3
 from openpyxl import Workbook
-from functions import delete_end_of_string, get_activity_list_path, get_activity_description_path, get_all_classes_path, get_all_activities_path, get_db_path, set_to_str
+from functions import delete_end_of_string, get_activity_list_path, get_activity_description_path, get_all_classes_path, get_all_activities_path, get_db_path, get_new_students_path, set_to_str
 from Button import Button
 from TableStudents import TableStudents
 from InputWindow import InputWindow
@@ -625,5 +625,8 @@ class Window(QWidget):
         self.table_students.set_value_in_cell(id, 2, class_name)
         self.table_students.student_id[student_name + " " + class_name] = id
         self.table_students.student_activities.append(set())
+
+        with open(get_new_students_path(), "a", encoding="utf-8") as file:
+            file.write(student_name + " " + class_name + "\n")
 
         self.input_win.close()

@@ -1,8 +1,8 @@
 from PyQt6.QtWidgets import QTableView
 from PyQt6.QtSql import QSqlDatabase, QSqlTableModel
-from functions import delete_end_of_string, get_class_list_path, get_activity_list_path, get_all_classes_path, get_all_activities_path, get_db_path, check_student_name
+from functions import delete_end_of_string, get_class_list_path, get_activity_list_path, get_all_classes_path, get_all_activities_path, get_db_path, get_new_students_path, check_student_name
 import openpyxl
-
+from os.path import exists
 
 class TableStudents(QTableView):
     def __init__(self):
@@ -34,8 +34,8 @@ class TableStudents(QTableView):
         self.student_activities = []
         self.student_id = dict()
 
+        id = 0
         with open(get_all_classes_path(), "r", encoding="utf-8") as all_classes:
-            id = 0
             for cur_class_name in all_classes:
                 cur_class_name = delete_end_of_string(cur_class_name)
                 wb_obj = openpyxl.load_workbook(get_class_list_path(cur_class_name))
@@ -47,6 +47,15 @@ class TableStudents(QTableView):
                         self.student_id[student_name + " " + cur_class_name] = id
                         self.student_activities.append(set())
                         id += 1
+
+        if not exists(get_new_students_path()):
+            with open(get_new_students_path(), "w", encoding="utf-8") as new_students:
+                pass
+        with open(get_new_students_path(), "r", encoding="utf-8") as new_students:
+            for line in new_students:
+                self.student_id[delete_end_of_string(line)] = id
+                self.student_activities.append(set())
+                id += 1
 
         with open(get_all_activities_path(), "r", encoding="utf-8") as all_activities:
             for cur_activity_name in all_activities:

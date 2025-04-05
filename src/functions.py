@@ -30,6 +30,9 @@ def get_all_activities_path():
 def get_db_path():
     return get_cwd() + "\\data\\student_database.db"
 
+def get_new_students_path():
+    return get_cwd() + "\\data\\student_lists\\new_students.txt"
+
 def check_student_name(student_name):
     return (type(student_name) == str) and (student_name != "ФИО учащегося")
 
