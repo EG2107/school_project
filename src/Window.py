@@ -46,6 +46,10 @@ class Window(QWidget):
         button_export.clicked.connect(self.export_table)
         self.main_page_buttons.append(button_export)
 
+        button_add_student = Button("Добавить ученика", self)
+        button_add_student.clicked.connect(self.open_add_student_page)
+        self.main_page_buttons.append(button_add_student)
+
         for button in self.main_page_buttons:
             self.layout.addWidget(button, alignment=Qt.AlignmentFlag.AlignCenter)
 
@@ -568,3 +572,58 @@ class Window(QWidget):
 
         wb.save('Сводная таблица.xlsx')
         connection.close()
+
+    def open_add_student_page(self):
+        self.hide()
+
+        self.input_win = InputWindow(self)
+        self.input_win.setGeometry(400, 250, 450, 200)
+
+        label_name = QLabel("Введите ФИО ученика:", self)
+        label_name.setFont(QFont("Helvetica [Cronyx]", 12))
+        self.input_win.layout.addWidget(label_name, alignment=Qt.AlignmentFlag.AlignCenter)
+
+        self.input_win.input_name = QLineEdit()
+        self.input_win.input_name.setMinimumWidth(300)
+        self.input_win.layout.addWidget(self.input_win.input_name, alignment=Qt.AlignmentFlag.AlignCenter)
+
+        label_name2 = QLabel("Введите класс ученика:", self)
+        label_name2.setFont(QFont("Helvetica [Cronyx]", 12))
+        self.input_win.layout.addWidget(label_name2, alignment=Qt.AlignmentFlag.AlignCenter)
+
+        self.input_win.input_name2 = QLineEdit()
+        self.input_win.input_name2.setMinimumWidth(300)
+        self.input_win.layout.addWidget(self.input_win.input_name2, alignment=Qt.AlignmentFlag.AlignCenter)
+    
+        button_commit = QPushButton("Подтвердить")
+        button_commit.clicked.connect(self.add_student)
+        self.input_win.layout.addWidget(button_commit)
+
+        self.input_win.show()
+    
+    def add_student(self):
+        student_name = self.input_win.input_name.text()
+        class_name = self.input_win.input_name2.text()
+
+        if ((student_name + " " + class_name) in self.table_students.student_id):
+            self.error_win = ErrorWindow("Такой ученик уже существует")
+            return
+
+        ok = False
+        with open(get_all_classes_path(), "r", encoding="utf-8") as all_classes:
+            for cur_class_name in all_classes:
+                cur_class_name = delete_end_of_string(cur_class_name)
+                if (cur_class_name == class_name):
+                    ok = True
+        if (not ok):
+            self.error_win = ErrorWindow(f"Класса '{class_name}' не существует.\nУбедитесь, что данные введены корректно.")
+            return
+        
+        id = self.table_students.table_model.rowCount()
+        self.table_students.table_model.insertRows(id, 1)
+        self.table_students.set_value_in_cell(id, 1, student_name)
+        self.table_students.set_value_in_cell(id, 2, class_name)
+        self.table_students.student_id[student_name + " " + class_name] = id
+        self.table_students.student_activities.append(set())
+
+        self.input_win.close()
